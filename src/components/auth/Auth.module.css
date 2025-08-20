@@ -1,0 +1,237 @@
+.authContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.authCard {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.authHeader {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  padding: 32px 32px 24px;
+  text-align: center;
+}
+
+.authHeader h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.authHeader p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.authForm {
+  padding: 32px;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 6px;
+  color: #374151;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.formInput {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.formInput:invalid {
+  border-color: #ef4444;
+}
+
+.passwordInput {
+  position: relative;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.passwordToggle:hover {
+  background-color: #f3f4f6;
+}
+
+.captchaContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.captchaImage {
+  flex: 1;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.captchaSvg {
+  width: 100%;
+  height: auto;
+}
+
+.captchaSvg svg {
+  width: 100%;
+  height: auto;
+}
+
+.captchaLoading {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.refreshCaptcha {
+  background: #f3f4f6;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background-color 0.2s, border-color 0.2s;
+  min-width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refreshCaptcha:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.refreshCaptcha:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submitButton {
+  width: 100%;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 8px;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.submitButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.authFooter {
+  background: #f9fafb;
+  padding: 20px 32px;
+  text-align: center;
+  border-top: 1px solid #e5e7eb;
+}
+
+.authFooter p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .authContainer {
+    padding: 16px;
+  }
+
+  .authCard {
+    border-radius: 8px;
+  }
+
+  .authHeader {
+    padding: 24px 20px 18px;
+  }
+
+  .authForm {
+    padding: 24px 20px;
+  }
+
+  .authFooter {
+    padding: 16px 20px;
+  }
+
+  .formInput {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+/* Loading states */
+.submitButton:disabled::after {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

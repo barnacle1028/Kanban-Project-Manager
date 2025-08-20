@@ -14,9 +14,13 @@ export class ApiError extends Error {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
   
+  // Get access token from localStorage
+  const accessToken = localStorage.getItem('accessToken')
+  
   const config: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
+      ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
       ...options.headers,
     },
     ...options,
