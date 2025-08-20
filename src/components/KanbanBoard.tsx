@@ -1,5 +1,4 @@
-import React, { useMemo, useState } from 'react'
-import styles from '../styles/Board.module.css'
+import React, { useMemo } from 'react'
 import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core'
@@ -26,35 +25,35 @@ const STAGE_LABELS: Record<MilestoneStage, string> = {
 function StageColumn({
   id,
   children,
-  musicToggle,
 }: {
   id: MilestoneStage
   children: React.ReactNode
-  musicToggle?: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
   return (
     <div
-      className={styles.col}
       ref={setNodeRef}
       style={{
-        outline: isOver ? '3px dashed #2E6F40' : 'none',
-        backgroundColor: isOver ? 'rgba(255, 255, 255, 0.9)' : 'white',
-        transform: isOver ? 'scale(1.02)' : 'scale(1)',
+        background: isOver ? '#CFFFDC' : 'white',
+        border: isOver ? '2px dashed #2E6F40' : '1px solid #68BA7F',
+        borderRadius: '8px',
+        padding: '12px',
+        minHeight: '300px',
         transition: 'all 0.2s ease',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '8px',
-        }}
-      >
-        <h3 style={{ margin: '8px 8px 8px 8px' }}>{STAGE_LABELS[id]}</h3>
-        {musicToggle}
-      </div>
+      <h3 style={{
+        margin: '0 0 12px 0',
+        fontSize: '12px',
+        fontWeight: '700',
+        color: '#2E6F40',
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        borderBottom: '2px solid #68BA7F',
+        paddingBottom: '6px'
+      }}>
+        {STAGE_LABELS[id]}
+      </h3>
       {children}
     </div>
   )
@@ -78,118 +77,123 @@ function MilestoneCard({
     isDragging,
   } = useSortable({
     id: milestone.id,
-    disabled: false, // Ensure all milestones can be dragged
+    disabled: false,
   })
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.8 : milestone.notPurchased ? 0.7 : 1,
-    background: isDragging
-      ? '#2E6F40'
-      : milestone.notPurchased
-        ? '#f0f9ff'
-        : '#2E6F40',
-    border: isDragging
-      ? '2px solid #253D2C'
-      : milestone.notPurchased
-        ? '1px solid #68BA7F'
-        : '1px solid #68BA7F',
-    boxShadow: isDragging ? '0 8px 16px rgba(46, 111, 64, 0.4)' : 'inherit',
-    color: isDragging ? 'white' : 'inherit',
-    zIndex: isDragging ? 1000 : 'auto',
-  }
+  
+  const isStandard = milestone.isStandard
+  const isNotPurchased = milestone.notPurchased
+  
   return (
-    <div className={styles.card} ref={setNodeRef} style={style} {...attributes}>
-      <div
-        className="row"
-        style={{ justifyContent: 'space-between', alignItems: 'center' }}
-      >
-        <strong
-          style={{
-            textDecoration: milestone.notPurchased ? 'line-through' : 'none',
-            color: isDragging
-              ? 'white'
-              : milestone.notPurchased
-                ? '#68BA7F'
-                : 'white',
-            fontSize: '13px',
-          }}
-        >
-          {milestone.name}
-        </strong>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <label
-            style={{
-              fontSize: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-              cursor: 'pointer',
-            }}
-          >
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        background: isDragging ? '#2E6F40' : isNotPurchased ? '#CFFFDC' : '#2E6F40',
+        border: `1px solid ${isDragging ? '#253D2C' : '#68BA7F'}`,
+        borderRadius: '6px',
+        padding: '8px',
+        marginBottom: '6px',
+        opacity: isDragging ? 0.9 : isNotPurchased ? 0.7 : 1,
+        boxShadow: isDragging ? '0 4px 8px rgba(46, 111, 64, 0.3)' : '0 1px 2px rgba(0,0,0,0.1)',
+        cursor: 'pointer',
+        zIndex: isDragging ? 1000 : 'auto',
+      }}
+      {...attributes}
+    >
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '4px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+          <span style={{
+            fontSize: '11px',
+            fontWeight: '600',
+            color: isDragging ? 'white' : isNotPurchased ? '#68BA7F' : 'white',
+            textDecoration: isNotPurchased ? 'line-through' : 'none',
+            flex: 1
+          }}>
+            {milestone.name}
+          </span>
+          {isStandard && (
+            <span style={{
+              fontSize: '8px',
+              background: '#68BA7F',
+              color: 'white',
+              padding: '1px 4px',
+              borderRadius: '3px',
+              fontWeight: '600'
+            }}>
+              STD
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <label style={{
+            fontSize: '9px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '2px',
+            cursor: 'pointer',
+            color: isDragging ? 'white' : '#68BA7F'
+          }}>
             <input
               type="checkbox"
-              checked={milestone.notPurchased || false}
-              onChange={(e) =>
-                onNotPurchasedChange(milestone.id, e.target.checked)
-              }
+              checked={isNotPurchased || false}
+              onChange={(e) => onNotPurchasedChange(milestone.id, e.target.checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ margin: 0, width: '12px', height: '12px' }}
+              style={{ margin: 0, width: '10px', height: '10px', accentColor: '#2E6F40' }}
             />
-            <span
-              className="muted"
-              style={{
-                color: isDragging ? 'rgba(255,255,255,0.8)' : undefined,
-              }}
-            >
-              NP
-            </span>
+            NP
           </label>
           <div
             {...listeners}
             style={{
               cursor: 'grab',
-              color: isDragging
-                ? 'rgba(255,255,255,0.9)'
-                : milestone.notPurchased
-                  ? '#68BA7F'
-                  : 'rgba(255,255,255,0.8)',
+              color: isDragging ? 'white' : '#68BA7F',
               fontSize: '12px',
+              padding: '2px'
             }}
           >
-            ⋮⋮⋮
+            ≡
           </div>
         </div>
       </div>
-      {!milestone.notPurchased && (
-        <div
-          className="row"
-          style={{ justifyContent: 'space-between', marginTop: 6, gap: '8px' }}
-        >
+      {!isNotPurchased && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
           <select
-            className="select"
-            style={{
-              fontSize: '10px',
-              padding: '1px 4px',
-              flex: 1,
-              minWidth: '0',
-            }}
             value={milestone.owner || ''}
             onChange={(e) => onOwnerChange(milestone.id, e.target.value)}
             onClick={(e) => e.stopPropagation()}
+            style={{
+              fontSize: '9px',
+              padding: '2px 4px',
+              border: '1px solid #68BA7F',
+              borderRadius: '3px',
+              background: '#CFFFDC',
+              color: '#253D2C',
+              flex: 1,
+              minWidth: '0',
+              outline: 'none'
+            }}
           >
             <option value="">Unassigned</option>
             {AVAILABLE_REPS.map((rep) => (
-              <option key={rep} value={rep}>
-                {rep}
-              </option>
+              <option key={rep} value={rep}>{rep}</option>
             ))}
           </select>
-          <span
-            className="muted"
-            style={{ fontSize: '10px', whiteSpace: 'nowrap' }}
-            title={`Moved to ${milestone.stage.toLowerCase().replace('_', ' ')} on ${getCurrentStageDate(milestone) || milestone.dueDate || 'unknown date'}`}
-          >
+          <span style={{
+            fontSize: '8px',
+            color: isDragging ? 'rgba(255,255,255,0.8)' : '#68BA7F',
+            whiteSpace: 'nowrap'
+          }}>
             {getCurrentStageDate(milestone) || milestone.dueDate || '—'}
           </span>
         </div>
@@ -246,50 +250,18 @@ export default function KanbanBoard({
 
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-      <div className={styles.board}>
-        {(
-          [
-            'NOT_STARTED',
-            'INITIAL_CALL',
-            'WORKSHOP',
-            'COMPLETED',
-          ] as MilestoneStage[]
-        ).map((stage) => (
-          <StageColumn
-            key={stage}
-            id={stage}
-            musicToggle={
-              stage === 'COMPLETED' ? (
-                <button
-                  onClick={() => onMusicToggle(!musicEnabled)}
-                  style={{
-                    background: musicEnabled ? 'white' : 'transparent',
-                    border: '1px solid #68BA7F',
-                    borderRadius: '12px',
-                    color: musicEnabled ? '#253D2C' : '#68BA7F',
-                    fontSize: '12px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease',
-                  }}
-                  title={
-                    musicEnabled
-                      ? 'Disable celebration sounds'
-                      : 'Enable celebration sounds'
-                  }
-                >
-                  {musicEnabled ? '🔊' : '🔇'}
-                  <span style={{ fontSize: '10px' }}>
-                    {musicEnabled ? 'ON' : 'OFF'}
-                  </span>
-                </button>
-              ) : undefined
-            }
-          >
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '12px',
+        padding: '0',
+        '@media (max-width: 768px)': {
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '8px'
+        }
+      }}>
+        {STAGES.map((stage) => (
+          <StageColumn key={stage} id={stage}>
             <SortableContext
               items={itemsByStage[stage].map((m) => m.id)}
               strategy={verticalListSortingStrategy}
