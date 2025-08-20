@@ -18,6 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "ci": "npm run type-check && npm run lint && npm run test:run",
     "build:analyze": "npm run build && npx vite-bundle-analyzer dist/assets/*.js",
+    "start": "node server/app.cjs",
     "server": "node server/app.cjs",
     "server:dev": "nodemon server/app.cjs",
     "setup-db": "node setup-database.cjs"
