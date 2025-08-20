@@ -5,10 +5,11 @@ const cors = require('cors')
 const app = express()
 const PORT = process.env.PORT || 3001
 
-console.log('🚀 Starting debug server...')
+console.log('🚀 Starting debug server v2...')
 console.log('Port:', PORT)
 console.log('Node ENV:', process.env.NODE_ENV)
 console.log('Database URL set:', !!process.env.DATABASE_URL)
+console.log('🔥 API endpoints loaded!')
 
 // CORS configuration for kanbanpm.com
 app.use(cors({
