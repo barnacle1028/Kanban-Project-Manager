@@ -17,9 +17,9 @@ const STAGES: MilestoneStage[] = [
 ]
 
 const STAGE_LABELS: Record<MilestoneStage, string> = {
-  NOT_STARTED: 'Not Started',
+  NOT_STARTED: 'New',
   INITIAL_CALL: 'Initial Call',
-  WORKSHOP: 'Workshop',
+  WORKSHOP: 'Workflow',
   COMPLETED: 'Completed',
 }
 

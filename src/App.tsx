@@ -6,6 +6,7 @@ import MainDashboard from './components/dashboards/MainDashboard'
 import RepDashboard from './components/RepDashboard'
 import EngagementDetails from './components/EngagementDetails'
 import KanbanBoard from './components/KanbanBoard'
+import MilestoneManager from './components/MilestoneManager'
 
 // Sample engagement data with your original structure
 const mockEngagements = [
@@ -162,6 +163,30 @@ function CompleteEngagementSystem({ user }: { user: any }) {
     }))
   }
 
+  const addMilestone = (engagementId: string, milestone: any) => {
+    setEngagements(prev => prev.map(eng => {
+      if (eng.id === engagementId) {
+        return {
+          ...eng,
+          milestones: [...eng.milestones, { ...milestone, id: `custom-${Date.now()}` }]
+        }
+      }
+      return eng
+    }))
+  }
+
+  const removeMilestone = (engagementId: string, milestoneId: string) => {
+    setEngagements(prev => prev.map(eng => {
+      if (eng.id === engagementId) {
+        return {
+          ...eng,
+          milestones: eng.milestones.filter(m => m.id !== milestoneId)
+        }
+      }
+      return eng
+    }))
+  }
+
   const selectedEngagement = selectedEngagementId 
     ? engagements.find(e => e.id === selectedEngagementId)
     : null
@@ -217,7 +242,15 @@ function CompleteEngagementSystem({ user }: { user: any }) {
           onEngagementChange={(updates) => updateEngagement(selectedEngagement.id, updates)}
         />
 
-        {/* Kanban Board */}
+        {/* Milestone Manager */}
+        <MilestoneManager
+          milestones={selectedEngagement.milestones}
+          onAdd={(milestone) => addMilestone(selectedEngagement.id, milestone)}
+          onRemove={(milestoneId) => removeMilestone(selectedEngagement.id, milestoneId)}
+          onUpdate={(milestoneId, updates) => updateMilestone(selectedEngagement.id, milestoneId, updates)}
+        />
+
+        {/* Milestone Management */}
         <div style={{ 
           background: 'white', 
           borderRadius: '12px', 
@@ -229,7 +262,7 @@ function CompleteEngagementSystem({ user }: { user: any }) {
             color: '#253D2C',
             fontFamily: 'Trebuchet MS, Arial, sans-serif'
           }}>
-            Milestone Progress
+            Milestone Phases
           </h2>
           <KanbanBoard
             engagement={selectedEngagement}

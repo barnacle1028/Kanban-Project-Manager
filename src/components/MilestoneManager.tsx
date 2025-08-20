@@ -197,9 +197,9 @@ export default function MilestoneManager({
                   fontSize: '14px',
                 }}
               >
-                <option value="NOT_STARTED">Not Started</option>
+                <option value="NOT_STARTED">New</option>
                 <option value="INITIAL_CALL">Initial Call</option>
-                <option value="WORKSHOP">Workshop</option>
+                <option value="WORKSHOP">Workflow</option>
                 <option value="COMPLETED">Completed</option>
               </select>
             </div>
