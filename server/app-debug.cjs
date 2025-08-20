@@ -62,6 +62,75 @@ app.post('/api/auth/login', (req, res) => {
   })
 })
 
+// Database setup endpoint
+app.post('/api/setup-database', async (req, res) => {
+  try {
+    const { Pool } = require('pg')
+    const fs = require('fs')
+    const path = require('path')
+    
+    if (!process.env.DATABASE_URL) {
+      return res.status(500).json({ error: 'DATABASE_URL not configured' })
+    }
+
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    })
+
+    // Read and execute migration
+    const migrationPath = path.join(__dirname, '../migrations/001_add_authentication.sql')
+    let migrationSQL = ''
+    
+    try {
+      migrationSQL = fs.readFileSync(migrationPath, 'utf8')
+    } catch (err) {
+      // If file doesn't exist, create basic schema
+      migrationSQL = `
+        -- Basic authentication tables
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          password_hash VARCHAR(255) NOT NULL,
+          name VARCHAR(255),
+          role VARCHAR(50) DEFAULT 'REP',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          token VARCHAR(255) NOT NULL,
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Create admin user if not exists
+        INSERT INTO users (email, password_hash, name, role) 
+        VALUES ('admin@kanbanpm.com', '$2b$12$dummy.hash.for.demo', 'System Admin', 'ADMIN')
+        ON CONFLICT (email) DO NOTHING;
+      `
+    }
+
+    await pool.query(migrationSQL)
+    await pool.end()
+
+    res.json({
+      success: true,
+      message: 'Database schema created successfully',
+      timestamp: new Date().toISOString()
+    })
+
+  } catch (error) {
+    console.error('Database setup error:', error)
+    res.status(500).json({
+      error: 'Database setup failed',
+      details: error.message
+    })
+  }
+})
+
 // List all available endpoints
 app.get('/api', (req, res) => {
   res.json({
@@ -72,7 +141,8 @@ app.get('/api', (req, res) => {
       'GET /env-check',
       'GET /api',
       'GET /api/auth/captcha',
-      'POST /api/auth/login'
+      'POST /api/auth/login',
+      'POST /api/setup-database'
     ],
     timestamp: new Date().toISOString()
   })
