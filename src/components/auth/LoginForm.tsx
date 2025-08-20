@@ -29,6 +29,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   })
   const [captcha, setCaptcha] = useState<CaptchaData | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const hasFetchedCaptcha = React.useRef(false)
 
   const login = useAuthStore(state => state.login)
   const { addNotification } = useNotifications()
@@ -84,7 +85,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   // Load CAPTCHA on component mount
   React.useEffect(() => {
-    fetchCaptcha()
+    if (!hasFetchedCaptcha.current) {
+      hasFetchedCaptcha.current = true
+      fetchCaptcha()
+    }
   }, [])
 
   const handleSubmit = (e: React.FormEvent) => {

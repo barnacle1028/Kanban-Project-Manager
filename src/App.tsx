@@ -81,22 +81,9 @@ function NavigationMenu({ user }: { user: any }) {
 
 function AppRoutes() {
   return (
-    <>
-      {/* Rep Dashboard - All authenticated users can access */}
-      <ProtectedRoute>
-        <MainDashboard />
-      </ProtectedRoute>
-
-      {/* Manager Features - Manager and Admin only */}
-      <ProtectedRoute requiredRole="MANAGER">
-        <ManagerFeatures />
-      </ProtectedRoute>
-
-      {/* Admin Panel - Admin only */}
-      <ProtectedRoute requiredRoles={['ADMIN']}>
-        <AdminPanel />
-      </ProtectedRoute>
-    </>
+    <ProtectedRoute>
+      <MainDashboard />
+    </ProtectedRoute>
   )
 }
 
