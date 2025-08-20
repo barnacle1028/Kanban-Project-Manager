@@ -2,6 +2,299 @@ import React from 'react'
 import { useAuthStore } from './store/authStore'
 import MainDashboard from './components/dashboards/MainDashboard'
 
+// Import original engagement components
+import RepDashboard from './components/RepDashboard'
+import EngagementDetails from './components/EngagementDetails'
+import KanbanBoard from './components/KanbanBoard'
+
+// Sample engagement data with your original structure
+const mockEngagements = [
+  {
+    id: '1',
+    name: 'ABC Corporation Website Redesign',
+    assignedRep: 'rep',
+    health: 'GREEN' as const,
+    status: 'ACTIVE' as const,
+    startDate: '2025-08-01',
+    closeDate: '2025-09-15',
+    salesType: 'Direct Sell' as const,
+    speed: 'Fast' as const,
+    crm: 'Salesforce' as const,
+    soldBy: 'John Sales',
+    seatCount: 50,
+    hoursAlloted: 40,
+    primaryContactName: 'Jane Smith',
+    primaryContactEmail: 'jane@abccorp.com',
+    linkedinLink: 'https://linkedin.com/in/janesmith',
+    avazaLink: 'https://app.avaza.com/project/123',
+    projectFolderLink: 'https://drive.google.com/folder/abc123',
+    clientWebsiteLink: 'https://abccorp.com',
+    addOnsPurchased: ['Meet', 'Deal'] as const,
+    milestones: [
+      {
+        id: 'm1',
+        name: 'Requirements Gathering',
+        stage: 'COMPLETED' as const,
+        owner: 'rep',
+        dueDate: '2025-08-10',
+        notPurchased: false,
+        stageHistory: [
+          { stage: 'COMPLETED' as const, date: '2025-08-09', note: 'Completed ahead of schedule' }
+        ]
+      },
+      {
+        id: 'm2', 
+        name: 'Design Mockups',
+        stage: 'WORKSHOP' as const,
+        owner: 'rep',
+        dueDate: '2025-08-20',
+        notPurchased: false,
+        stageHistory: [
+          { stage: 'INITIAL_CALL' as const, date: '2025-08-15', note: 'Initial design call completed' }
+        ]
+      },
+      {
+        id: 'm3',
+        name: 'Frontend Development', 
+        stage: 'INITIAL_CALL' as const,
+        owner: 'rep',
+        dueDate: '2025-09-01',
+        notPurchased: false,
+        stageHistory: []
+      },
+      {
+        id: 'm4',
+        name: 'Testing & Launch',
+        stage: 'NOT_STARTED' as const,
+        owner: '',
+        dueDate: '2025-09-15',
+        notPurchased: false,
+        stageHistory: []
+      }
+    ]
+  },
+  {
+    id: '2',
+    name: 'XYZ Industries CRM Implementation',
+    assignedRep: 'rep',
+    health: 'YELLOW' as const,
+    status: 'ACTIVE' as const,
+    startDate: '2025-08-15',
+    closeDate: '2025-10-01',
+    salesType: 'Channel' as const,
+    speed: 'Medium' as const,
+    crm: 'Hubspot' as const,
+    soldBy: 'Sarah Sales',
+    seatCount: 25,
+    hoursAlloted: 60,
+    primaryContactName: 'Bob Johnson',
+    primaryContactEmail: 'bob@xyzind.com',
+    linkedinLink: 'https://linkedin.com/in/bobjohnson',
+    avazaLink: 'https://app.avaza.com/project/456',
+    projectFolderLink: 'https://drive.google.com/folder/xyz456',
+    clientWebsiteLink: 'https://xyzindustries.com',
+    addOnsPurchased: ['Forecasting', 'AI Agents'] as const,
+    milestones: [
+      {
+        id: 'm5',
+        name: 'Discovery Workshop',
+        stage: 'COMPLETED' as const,
+        owner: 'rep',
+        dueDate: '2025-08-25',
+        notPurchased: false,
+        stageHistory: [
+          { stage: 'COMPLETED' as const, date: '2025-08-24', note: 'Workshop completed successfully' }
+        ]
+      },
+      {
+        id: 'm6',
+        name: 'Data Migration Planning',
+        stage: 'WORKSHOP' as const,
+        owner: 'rep',
+        dueDate: '2025-09-05',
+        notPurchased: false,
+        stageHistory: []
+      },
+      {
+        id: 'm7',
+        name: 'User Training',
+        stage: 'NOT_STARTED' as const,
+        owner: '',
+        dueDate: '2025-09-20',
+        notPurchased: false,
+        stageHistory: []
+      },
+      {
+        id: 'm8',
+        name: 'Go Live Support',
+        stage: 'NOT_STARTED' as const,
+        owner: '',
+        dueDate: '2025-10-01',
+        notPurchased: false,
+        stageHistory: []
+      }
+    ]
+  }
+]
+
+function CompleteEngagementSystem({ user }: { user: any }) {
+  const [selectedEngagementId, setSelectedEngagementId] = React.useState<string | null>(null)
+  const [engagements, setEngagements] = React.useState(mockEngagements)
+  const [musicEnabled, setMusicEnabled] = React.useState(false)
+
+  const updateEngagement = (engagementId: string, updates: any) => {
+    setEngagements(prev => prev.map(eng => 
+      eng.id === engagementId ? { ...eng, ...updates } : eng
+    ))
+  }
+
+  const updateMilestone = (engagementId: string, milestoneId: string, updates: any) => {
+    setEngagements(prev => prev.map(eng => {
+      if (eng.id === engagementId) {
+        return {
+          ...eng,
+          milestones: eng.milestones.map(m => 
+            m.id === milestoneId ? { ...m, ...updates } : m
+          )
+        }
+      }
+      return eng
+    }))
+  }
+
+  const selectedEngagement = selectedEngagementId 
+    ? engagements.find(e => e.id === selectedEngagementId)
+    : null
+
+  if (selectedEngagement) {
+    return (
+      <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px' }}>
+        {/* Header with back button */}
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '12px', 
+          padding: '20px', 
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px'
+        }}>
+          <button
+            onClick={() => setSelectedEngagementId(null)}
+            style={{
+              background: '#6c757d',
+              border: 'none',
+              borderRadius: '8px',
+              color: 'white',
+              padding: '10px 20px',
+              cursor: 'pointer',
+              fontFamily: 'Trebuchet MS, Arial, sans-serif'
+            }}
+          >
+            ← Back to Dashboard
+          </button>
+          <div>
+            <h1 style={{ 
+              margin: 0, 
+              color: '#253D2C',
+              fontFamily: 'Trebuchet MS, Arial, sans-serif'
+            }}>
+              {selectedEngagement.name}
+            </h1>
+            <p style={{ 
+              margin: '5px 0 0 0', 
+              color: '#68BA7F',
+              fontFamily: 'Trebuchet MS, Arial, sans-serif'
+            }}>
+              Engagement Details & Milestone Management
+            </p>
+          </div>
+        </div>
+
+        {/* Engagement Details */}
+        <EngagementDetails 
+          engagement={selectedEngagement}
+          onEngagementChange={(updates) => updateEngagement(selectedEngagement.id, updates)}
+        />
+
+        {/* Kanban Board */}
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '12px', 
+          padding: '20px', 
+          marginTop: '20px' 
+        }}>
+          <h2 style={{ 
+            margin: '0 0 20px 0', 
+            color: '#253D2C',
+            fontFamily: 'Trebuchet MS, Arial, sans-serif'
+          }}>
+            Milestone Progress
+          </h2>
+          <KanbanBoard
+            engagement={selectedEngagement}
+            onMilestoneOwnerChange={(milestoneId, owner) => 
+              updateMilestone(selectedEngagement.id, milestoneId, { owner })
+            }
+            onMilestoneStageChange={(milestoneId, stage) => 
+              updateMilestone(selectedEngagement.id, milestoneId, { stage })
+            }
+            onMilestoneNotPurchasedChange={(milestoneId, notPurchased) =>
+              updateMilestone(selectedEngagement.id, milestoneId, { notPurchased })
+            }
+            musicEnabled={musicEnabled}
+            onMusicToggle={setMusicEnabled}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // Show dashboard based on role
+  if (user.role === 'REP') {
+    return (
+      <RepDashboard
+        engagements={engagements}
+        repName={user.email.split('@')[0]}
+        onSelectEngagement={setSelectedEngagementId}
+      />
+    )
+  }
+
+  // Manager/Admin view - show all engagements across reps
+  return (
+    <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px' }}>
+      <div style={{ 
+        background: 'white', 
+        borderRadius: '12px', 
+        padding: '20px', 
+        marginBottom: '20px' 
+      }}>
+        <h1 style={{ 
+          margin: 0, 
+          color: '#253D2C',
+          fontFamily: 'Trebuchet MS, Arial, sans-serif'
+        }}>
+          All Rep Engagements - {user.role} View
+        </h1>
+        <p style={{ 
+          margin: '5px 0 0 0', 
+          color: '#68BA7F',
+          fontFamily: 'Trebuchet MS, Arial, sans-serif'
+        }}>
+          Overview of all representative engagements
+        </p>
+      </div>
+
+      <RepDashboard
+        engagements={engagements}
+        repName="All Reps"
+        onSelectEngagement={setSelectedEngagementId}
+      />
+    </div>
+  )
+}
+
 // Sample Kanban data
 const initialCards = [
   { id: '1', title: 'Set up project structure', description: 'Initialize repository and basic setup', status: 'done', priority: 'high', assignee: 'admin', dueDate: '2025-08-15' },
@@ -592,7 +885,7 @@ function Dashboard({ user }: { user: any }) {
 }
 
 function EngagementsView({ user }: { user: any }) {
-  return <EngagementsDashboard user={user} />
+  return <CompleteEngagementSystem user={user} />
 }
 
 function EngagementsDashboard({ user }: { user: any }) {
