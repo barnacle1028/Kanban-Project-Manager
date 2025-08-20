@@ -592,7 +592,317 @@ function Dashboard({ user }: { user: any }) {
 }
 
 function EngagementsView({ user }: { user: any }) {
-  return <MainDashboard />
+  return <EngagementsDashboard user={user} />
+}
+
+function EngagementsDashboard({ user }: { user: any }) {
+  // Mock engagement data based on user role
+  const mockEngagements = React.useMemo(() => {
+    if (user.role === 'REP') {
+      return [
+        {
+          id: '1',
+          title: 'ABC Corp Website Redesign',
+          client: 'ABC Corporation',
+          status: 'IN_PROGRESS',
+          startDate: '2025-08-01',
+          endDate: '2025-09-15',
+          assignedRep: user.email.split('@')[0],
+          milestones: [
+            { id: '1', title: 'Requirements Gathering', stage: 'DONE', dueDate: '2025-08-10' },
+            { id: '2', title: 'Design Mockups', stage: 'IN_PROGRESS', dueDate: '2025-08-20' },
+            { id: '3', title: 'Development', stage: 'TODO', dueDate: '2025-09-01' },
+            { id: '4', title: 'Testing & Launch', stage: 'TODO', dueDate: '2025-09-15' },
+          ]
+        },
+        {
+          id: '2',
+          title: 'XYZ Marketing Campaign',
+          client: 'XYZ Industries',
+          status: 'PLANNING',
+          startDate: '2025-08-15',
+          endDate: '2025-10-01',
+          assignedRep: user.email.split('@')[0],
+          milestones: [
+            { id: '5', title: 'Market Research', stage: 'IN_PROGRESS', dueDate: '2025-08-25' },
+            { id: '6', title: 'Strategy Development', stage: 'TODO', dueDate: '2025-09-05' },
+            { id: '7', title: 'Creative Assets', stage: 'TODO', dueDate: '2025-09-20' },
+            { id: '8', title: 'Campaign Launch', stage: 'TODO', dueDate: '2025-10-01' },
+          ]
+        }
+      ]
+    } else {
+      // Manager/Admin sees multiple reps' engagements
+      return [
+        {
+          id: '1',
+          title: 'ABC Corp Website Redesign',
+          client: 'ABC Corporation',
+          status: 'IN_PROGRESS',
+          assignedRep: 'john',
+          milestones: [{ id: '1', title: 'Design Mockups', stage: 'IN_PROGRESS', dueDate: '2025-08-20' }]
+        },
+        {
+          id: '2',
+          title: 'XYZ Marketing Campaign',
+          client: 'XYZ Industries',
+          status: 'PLANNING',
+          assignedRep: 'sarah',
+          milestones: [{ id: '2', title: 'Market Research', stage: 'IN_PROGRESS', dueDate: '2025-08-25' }]
+        },
+        {
+          id: '3',
+          title: 'DEF Mobile App',
+          client: 'DEF Solutions',
+          status: 'IN_PROGRESS',
+          assignedRep: 'mike',
+          milestones: [{ id: '3', title: 'UI Development', stage: 'IN_PROGRESS', dueDate: '2025-08-30' }]
+        }
+      ]
+    }
+  }, [user.role, user.email])
+
+  const [selectedEngagement, setSelectedEngagement] = React.useState<string | null>(null)
+
+  if (selectedEngagement && user.role === 'REP') {
+    const engagement = mockEngagements.find(e => e.id === selectedEngagement)
+    if (engagement) {
+      return <EngagementDetail engagement={engagement} onBack={() => setSelectedEngagement(null)} />
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PLANNING': return '#ffc107'
+      case 'IN_PROGRESS': return '#007bff'
+      case 'COMPLETED': return '#28a745'
+      case 'ON_HOLD': return '#dc3545'
+      default: return '#6c757d'
+    }
+  }
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>{user.role === 'REP' ? '📝 My Engagements' : '👥 All Rep Engagements'}</h2>
+        {user.role === 'REP' && (
+          <button style={{
+            padding: '10px 20px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}>
+            ➕ New Engagement
+          </button>
+        )}
+      </div>
+
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: user.role === 'REP' ? '1fr' : 'repeat(auto-fill, minmax(350px, 1fr))', 
+        gap: '20px' 
+      }}>
+        {mockEngagements.map(engagement => (
+          <div
+            key={engagement.id}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              padding: '20px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              border: '1px solid #e1e5e9',
+              cursor: user.role === 'REP' ? 'pointer' : 'default'
+            }}
+            onClick={() => user.role === 'REP' && setSelectedEngagement(engagement.id)}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px' }}>{engagement.title}</h3>
+              <span style={{
+                backgroundColor: getStatusColor(engagement.status),
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                {engagement.status.replace('_', ' ')}
+              </span>
+            </div>
+            
+            <p style={{ margin: '0 0 10px 0', color: '#666' }}>
+              <strong>Client:</strong> {engagement.client}
+            </p>
+            
+            {user.role !== 'REP' && (
+              <p style={{ margin: '0 0 10px 0', color: '#666' }}>
+                <strong>Rep:</strong> {engagement.assignedRep}
+              </p>
+            )}
+
+            <div style={{ marginTop: '15px' }}>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>📋 Milestones Progress</h4>
+              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                {engagement.milestones?.slice(0, 4).map(milestone => (
+                  <span
+                    key={milestone.id}
+                    style={{
+                      backgroundColor: milestone.stage === 'DONE' ? '#28a745' : 
+                                      milestone.stage === 'IN_PROGRESS' ? '#ffc107' : '#e9ecef',
+                      color: milestone.stage === 'TODO' ? '#495057' : 'white',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      fontSize: '10px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {milestone.title}
+                  </span>
+                ))}
+                {engagement.milestones && engagement.milestones.length > 4 && (
+                  <span style={{ fontSize: '10px', color: '#666' }}>
+                    +{engagement.milestones.length - 4} more
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {user.role === 'REP' && (
+              <div style={{ marginTop: '15px', textAlign: 'right' }}>
+                <span style={{ fontSize: '12px', color: '#007bff' }}>
+                  Click to view milestones →
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EngagementDetail({ engagement, onBack }: { engagement: any, onBack: () => void }) {
+  const [milestones, setMilestones] = React.useState(engagement.milestones)
+
+  const columns = [
+    { id: 'TODO', title: '📋 To Do', color: '#e3f2fd' },
+    { id: 'IN_PROGRESS', title: '🚀 In Progress', color: '#fff3e0' },
+    { id: 'REVIEW', title: '👀 Review', color: '#f3e5f5' },
+    { id: 'DONE', title: '✅ Done', color: '#e8f5e8' }
+  ]
+
+  const getMilestonesByStage = (stage: string) => 
+    milestones.filter((m: any) => m.stage === stage)
+
+  const moveMilestone = (milestoneId: string, newStage: string) => {
+    setMilestones(milestones.map((m: any) => 
+      m.id === milestoneId ? { ...m, stage: newStage } : m
+    ))
+  }
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
+        <button 
+          onClick={onBack}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
+        >
+          ← Back
+        </button>
+        <div>
+          <h2 style={{ margin: 0 }}>{engagement.title}</h2>
+          <p style={{ margin: '5px 0 0 0', color: '#666' }}>Client: {engagement.client}</p>
+        </div>
+      </div>
+
+      {/* Milestone Kanban Board */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(4, 1fr)', 
+        gap: '20px',
+        minHeight: '70vh'
+      }}>
+        {columns.map(column => (
+          <div
+            key={column.id}
+            style={{
+              backgroundColor: column.color,
+              borderRadius: '8px',
+              padding: '15px',
+              minHeight: '500px'
+            }}
+          >
+            <h3 style={{ 
+              margin: '0 0 15px 0', 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              {column.title}
+              <span style={{
+                backgroundColor: 'rgba(0,0,0,0.1)',
+                borderRadius: '12px',
+                padding: '2px 8px',
+                fontSize: '12px'
+              }}>
+                {getMilestonesByStage(column.id).length}
+              </span>
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {getMilestonesByStage(column.id).map((milestone: any) => (
+                <div
+                  key={milestone.id}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '6px',
+                    padding: '15px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>
+                    {milestone.title}
+                  </h4>
+                  <div style={{ fontSize: '11px', color: '#888' }}>
+                    📅 Due: {milestone.dueDate}
+                  </div>
+                  
+                  {/* Move buttons */}
+                  <div style={{ marginTop: '10px', display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                    {columns.filter(col => col.id !== milestone.stage).map(targetCol => (
+                      <button
+                        key={targetCol.id}
+                        onClick={() => moveMilestone(milestone.id, targetCol.id)}
+                        style={{
+                          fontSize: '10px',
+                          padding: '4px 8px',
+                          backgroundColor: '#f8f9fa',
+                          border: '1px solid #ddd',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        → {targetCol.title.split(' ')[1]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function TeamManagement({ user }: { user: any }) {
