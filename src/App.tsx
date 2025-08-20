@@ -1,5 +1,6 @@
 import React from 'react'
 import { useAuthStore } from './store/authStore'
+import MainDashboard from './components/dashboards/MainDashboard'
 
 // Sample Kanban data
 const initialCards = [
@@ -456,12 +457,11 @@ function NavigationMenu({ user }: { user: any }) {
   const navItems = React.useMemo(() => {
     const items = [
       { id: 'dashboard', label: '📊 Dashboard', roles: ['REP', 'MANAGER', 'ADMIN'] },
-      { id: 'kanban', label: '📋 Kanban Board', roles: ['REP', 'MANAGER', 'ADMIN'] },
-      { id: 'engagements', label: '📝 Engagements', roles: ['REP', 'MANAGER', 'ADMIN'] },
+      { id: 'engagements', label: '📝 My Engagements', roles: ['REP', 'MANAGER', 'ADMIN'] },
     ]
 
     if (user.role === 'MANAGER' || user.role === 'ADMIN') {
-      items.push({ id: 'team', label: '👥 Team Management', roles: ['MANAGER', 'ADMIN'] })
+      items.push({ id: 'team', label: '👥 All Reps', roles: ['MANAGER', 'ADMIN'] })
     }
 
     if (user.role === 'ADMIN') {
@@ -512,9 +512,6 @@ function AppContent({ user }: { user: any }) {
   }, [currentView])
 
   switch (currentView) {
-    case 'kanban':
-      return <KanbanBoard user={user} />
-    
     case 'engagements':
       return <EngagementsView user={user} />
     
@@ -549,19 +546,19 @@ function Dashboard({ user }: { user: any }) {
         </div>
         
         <div style={{ backgroundColor: '#f3e5f5', padding: '20px', borderRadius: '8px' }}>
-          <h3>📈 Quick Stats</h3>
-          <p><strong>Active Tasks:</strong> 3</p>
+          <h3>📈 Engagement Stats</h3>
+          <p><strong>Active Engagements:</strong> 3</p>
           <p><strong>Completed:</strong> 2</p>
-          <p><strong>Total Projects:</strong> 1</p>
-          <p><strong>Team Members:</strong> 5</p>
+          <p><strong>Total Milestones:</strong> 12</p>
+          <p><strong>Overdue Items:</strong> 1</p>
         </div>
         
         <div style={{ backgroundColor: '#e8f5e8', padding: '20px', borderRadius: '8px' }}>
           <h3>🚀 Recent Activity</h3>
-          <p>• Created Kanban board</p>
-          <p>• Added authentication</p>
-          <p>• Deployed to production</p>
-          <p>• Set up domain</p>
+          <p>• Completed milestone: Design Review</p>
+          <p>• Started new engagement: ABC Corp</p>
+          <p>• Updated deliverable status</p>
+          <p>• Assigned new milestone</p>
         </div>
       </div>
 
@@ -569,23 +566,23 @@ function Dashboard({ user }: { user: any }) {
         <h3>🎯 Available Features</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
           <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-            <h4>📋 Kanban Board</h4>
-            <p>Manage tasks with drag & drop</p>
+            <h4>📝 My Engagements</h4>
+            <p>Client projects with milestone tracking</p>
           </div>
           <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-            <h4>📝 Engagements</h4>
-            <p>Track client projects</p>
+            <h4>📋 Milestone Kanban</h4>
+            <p>Drag & drop milestone management</p>
           </div>
           {(user.role === 'MANAGER' || user.role === 'ADMIN') && (
             <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-              <h4>👥 Team Management</h4>
-              <p>Manage team members</p>
+              <h4>👥 All Reps</h4>
+              <p>View all rep engagements rollup</p>
             </div>
           )}
           {user.role === 'ADMIN' && (
             <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
               <h4>⚙️ Administration</h4>
-              <p>System configuration</p>
+              <p>User management & system config</p>
             </div>
           )}
         </div>
@@ -595,15 +592,7 @@ function Dashboard({ user }: { user: any }) {
 }
 
 function EngagementsView({ user }: { user: any }) {
-  return (
-    <div style={{ padding: '20px' }}>
-      <h2>📝 Client Engagements</h2>
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
-        <p>Engagement management features coming soon...</p>
-        <p>This will include client projects, milestones, and deliverables tracking.</p>
-      </div>
-    </div>
-  )
+  return <MainDashboard />
 }
 
 function TeamManagement({ user }: { user: any }) {
