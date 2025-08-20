@@ -10,8 +10,12 @@ console.log('Port:', PORT)
 console.log('Node ENV:', process.env.NODE_ENV)
 console.log('Database URL set:', !!process.env.DATABASE_URL)
 
-// Basic middleware
-app.use(cors())
+// CORS configuration for kanbanpm.com
+app.use(cors({
+  origin: ['https://kanbanpm.com', 'https://www.kanbanpm.com', 'http://localhost:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+}))
 app.use(express.json())
 
 // Test routes
@@ -38,6 +42,22 @@ app.get('/env-check', (req, res) => {
     nodeEnv: process.env.NODE_ENV,
     hasDatabaseUrl: !!process.env.DATABASE_URL,
     hasJwtSecret: !!process.env.JWT_SECRET
+  })
+})
+
+// Basic API endpoints for frontend
+app.get('/api/auth/captcha', (req, res) => {
+  res.json({
+    captchaId: 'debug-123',
+    captchaSvg: '<svg>Debug CAPTCHA</svg>',
+    solution: 'DEBUG'
+  })
+})
+
+app.post('/api/auth/login', (req, res) => {
+  res.json({
+    message: 'Debug login endpoint working',
+    received: req.body
   })
 })
 
