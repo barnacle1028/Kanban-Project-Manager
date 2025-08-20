@@ -438,13 +438,203 @@ function App() {
             </button>
           </div>
         </div>
+        
+        {/* Navigation */}
+        <NavigationMenu user={user} />
       </header>
 
       <main>
-        <KanbanBoard user={user} />
+        <AppContent user={user} />
       </main>
     </div>
   )
+}
+
+function NavigationMenu({ user }: { user: any }) {
+  const [activeView, setActiveView] = React.useState('dashboard')
+
+  const navItems = React.useMemo(() => {
+    const items = [
+      { id: 'dashboard', label: '📊 Dashboard', roles: ['REP', 'MANAGER', 'ADMIN'] },
+      { id: 'kanban', label: '📋 Kanban Board', roles: ['REP', 'MANAGER', 'ADMIN'] },
+      { id: 'engagements', label: '📝 Engagements', roles: ['REP', 'MANAGER', 'ADMIN'] },
+    ]
+
+    if (user.role === 'MANAGER' || user.role === 'ADMIN') {
+      items.push({ id: 'team', label: '👥 Team Management', roles: ['MANAGER', 'ADMIN'] })
+    }
+
+    if (user.role === 'ADMIN') {
+      items.push({ id: 'admin', label: '⚙️ Administration', roles: ['ADMIN'] })
+    }
+
+    return items.filter(item => item.roles.includes(user.role))
+  }, [user.role])
+
+  return (
+    <nav style={{ marginTop: '20px' }}>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        {navItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => setActiveView(item.id)}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: activeView === item.id ? '#007bff' : '#f8f9fa',
+              color: activeView === item.id ? 'white' : '#333',
+              border: '1px solid #ddd',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      {/* Pass activeView to parent */}
+      <div style={{ display: 'none' }}>{window.currentView = activeView}</div>
+    </nav>
+  )
+}
+
+function AppContent({ user }: { user: any }) {
+  const [currentView, setCurrentView] = React.useState('dashboard')
+  
+  // Listen for view changes from NavigationMenu
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      if (window.currentView && window.currentView !== currentView) {
+        setCurrentView(window.currentView)
+      }
+    }, 100)
+    return () => clearInterval(interval)
+  }, [currentView])
+
+  switch (currentView) {
+    case 'kanban':
+      return <KanbanBoard user={user} />
+    
+    case 'engagements':
+      return <EngagementsView user={user} />
+    
+    case 'team':
+      return <TeamManagement user={user} />
+    
+    case 'admin':
+      return <AdminPanel user={user} />
+    
+    default:
+      return <Dashboard user={user} />
+  }
+}
+
+function Dashboard({ user }: { user: any }) {
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>📊 Dashboard Overview</h2>
+      
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+        gap: '20px', 
+        marginBottom: '30px' 
+      }}>
+        <div style={{ backgroundColor: '#e3f2fd', padding: '20px', borderRadius: '8px' }}>
+          <h3>👤 Your Profile</h3>
+          <p><strong>Name:</strong> {user?.name || 'User'}</p>
+          <p><strong>Email:</strong> {user?.email}</p>
+          <p><strong>Role:</strong> {user?.role}</p>
+          <p><strong>Status:</strong> ✅ Active</p>
+        </div>
+        
+        <div style={{ backgroundColor: '#f3e5f5', padding: '20px', borderRadius: '8px' }}>
+          <h3>📈 Quick Stats</h3>
+          <p><strong>Active Tasks:</strong> 3</p>
+          <p><strong>Completed:</strong> 2</p>
+          <p><strong>Total Projects:</strong> 1</p>
+          <p><strong>Team Members:</strong> 5</p>
+        </div>
+        
+        <div style={{ backgroundColor: '#e8f5e8', padding: '20px', borderRadius: '8px' }}>
+          <h3>🚀 Recent Activity</h3>
+          <p>• Created Kanban board</p>
+          <p>• Added authentication</p>
+          <p>• Deployed to production</p>
+          <p>• Set up domain</p>
+        </div>
+      </div>
+
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h3>🎯 Available Features</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+            <h4>📋 Kanban Board</h4>
+            <p>Manage tasks with drag & drop</p>
+          </div>
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+            <h4>📝 Engagements</h4>
+            <p>Track client projects</p>
+          </div>
+          {(user.role === 'MANAGER' || user.role === 'ADMIN') && (
+            <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+              <h4>👥 Team Management</h4>
+              <p>Manage team members</p>
+            </div>
+          )}
+          {user.role === 'ADMIN' && (
+            <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+              <h4>⚙️ Administration</h4>
+              <p>System configuration</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EngagementsView({ user }: { user: any }) {
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>📝 Client Engagements</h2>
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
+        <p>Engagement management features coming soon...</p>
+        <p>This will include client projects, milestones, and deliverables tracking.</p>
+      </div>
+    </div>
+  )
+}
+
+function TeamManagement({ user }: { user: any }) {
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>👥 Team Management</h2>
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
+        <p>Team management features for {user.role} role.</p>
+        <p>Manage team members, assign roles, and track performance.</p>
+      </div>
+    </div>
+  )
+}
+
+function AdminPanel({ user }: { user: any }) {
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>⚙️ Administration Panel</h2>
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
+        <p>Administrative features for {user.role} role.</p>
+        <p>System configuration, user management, and security settings.</p>
+      </div>
+    </div>
+  )
+}
+
+// Add to window for communication between components
+declare global {
+  interface Window {
+    currentView: string
+  }
 }
 
 export default App
