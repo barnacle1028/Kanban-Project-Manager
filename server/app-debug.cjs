@@ -61,6 +61,22 @@ app.post('/api/auth/login', (req, res) => {
   })
 })
 
+// List all available endpoints
+app.get('/api', (req, res) => {
+  res.json({
+    message: 'Kanban API - Debug Mode',
+    endpoints: [
+      'GET /',
+      'GET /health', 
+      'GET /env-check',
+      'GET /api',
+      'GET /api/auth/captcha',
+      'POST /api/auth/login'
+    ],
+    timestamp: new Date().toISOString()
+  })
+})
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Debug server running on port ${PORT}`)
   console.log(`🌐 Access at: http://localhost:${PORT}`)
