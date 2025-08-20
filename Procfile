@@ -1,1 +1,1 @@
-web: node server/app-railway.cjs
+web: node server/app-debug.cjs
