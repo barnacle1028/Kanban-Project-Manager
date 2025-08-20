@@ -35,7 +35,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   // Fetch CAPTCHA
   const { mutate: fetchCaptcha, isPending: isFetchingCaptcha } = useMutation({
-    mutationFn: () => api.get<CaptchaData>('/auth/captcha'),
+    mutationFn: () => api.get<CaptchaData>('/api/auth/captcha'),
     onSuccess: (data) => {
       setCaptcha(data)
       setFormData(prev => ({ ...prev, captchaSolution: '' }))
@@ -51,7 +51,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   // Login mutation
   const { mutate: loginUser, isPending: isLoggingIn } = useMutation({
-    mutationFn: (data: LoginRequest) => api.post('/auth/login', data),
+    mutationFn: (data: LoginRequest) => api.post('/api/auth/login', data),
     onSuccess: (data: any) => {
       // Store tokens in localStorage
       localStorage.setItem('accessToken', data.accessToken)
