@@ -3,6 +3,7 @@ import { useAuthStore } from './store/authStore'
 import { comprehensiveEngagements, getEngagementsByRep, getEngagementsByManager, getEngagementById } from './data/comprehensiveEngagements'
 import { userData, getUserByEmail, determineRoleFromEmail } from './data/userData'
 import type { EngagementWithMilestones } from './api/types'
+import UserRoleManagement from './components/admin/UserRoleManagement'
 
 
 function CompleteEngagementSystem({ user }: { user: any }) {
@@ -782,6 +783,12 @@ function ManagerDashboardView({ engagements, user, onSelectEngagement, isAdmin =
   }, [engagements])
 
   const [selectedRep, setSelectedRep] = React.useState<string | null>(null)
+  const [showUserRoleManagement, setShowUserRoleManagement] = React.useState(false)
+
+  // Show User Role Management if requested
+  if (showUserRoleManagement) {
+    return <UserRoleManagement onClose={() => setShowUserRoleManagement(false)} />
+  }
 
   if (selectedRep && repEngagements[selectedRep]) {
     const selectedRepUser = userData.find(u => u.name === selectedRep)
@@ -877,16 +884,19 @@ function ManagerDashboardView({ engagements, user, onSelectEngagement, isAdmin =
             }}>
               Add New Engagement
             </button>
-            <button style={{
-              background: '#2E6F40',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontFamily: 'Trebuchet MS, Arial, sans-serif'
-            }}>
-              Manage User Roles
+            <button 
+              onClick={() => setShowUserRoleManagement(true)}
+              style={{
+                background: '#2E6F40',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}
+            >
+              Create User Role
             </button>
             <button style={{
               background: '#2E6F40',
