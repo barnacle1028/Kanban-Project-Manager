@@ -185,7 +185,7 @@ function SimpleLoginForm() {
       }
 
       // Try authentication with User Management service
-      const { userManagementService } = await import('../api/userManagement')
+      const { userManagementService } = await import('./api/userManagement')
       const authenticatedUser = await userManagementService.authenticateUser(email, password)
       
       if (authenticatedUser) {

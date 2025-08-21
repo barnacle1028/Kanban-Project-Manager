@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, CheckCircle, AlertCircle, Lock } from 'lucide-react'
 import type { PasswordResetConfirm } from '../../types/userManagement'
 import { userManagementService } from '../../api/userManagement'
 import { VALIDATION_PATTERNS, DEFAULT_PASSWORD_REQUIREMENTS } from '../../types/userManagement'
 
 export default function PasswordResetConfirm() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const token = searchParams.get('token')
+  // Get token from URL parameters manually since we don't use React Router
+  const urlParams = new URLSearchParams(window.location.search)
+  const token = urlParams.get('token')
 
   const [formData, setFormData] = useState<PasswordResetConfirm>({
     token: token || '',
@@ -84,7 +83,7 @@ export default function PasswordResetConfirm() {
   }
 
   const handleLoginRedirect = () => {
-    navigate('/')
+    window.location.href = '/'
   }
 
   if (isSuccess) {
