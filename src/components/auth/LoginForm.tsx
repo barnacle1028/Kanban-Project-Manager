@@ -213,6 +213,22 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
         <div className={styles.authFooter}>
           <p>
+            <button
+              type="button"
+              onClick={() => window.location.href = '/reset-password'}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#059669',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontSize: 'inherit'
+              }}
+            >
+              Forgot your password?
+            </button>
+          </p>
+          <p>
             Need help? Contact your administrator
           </p>
         </div>

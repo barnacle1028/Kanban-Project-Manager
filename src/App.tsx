@@ -4,6 +4,9 @@ import { comprehensiveEngagements, getEngagementsByRep, getEngagementsByManager,
 import { userData, getUserByEmail, determineRoleFromEmail } from './data/userData'
 import type { EngagementWithMilestones } from './api/types'
 import UserRoleManagement from './components/admin/UserRoleManagement'
+import PasswordReset from './components/auth/PasswordReset'
+import PasswordResetConfirm from './components/auth/PasswordResetConfirm'
+import UserSettings from './components/user/UserSettings'
 
 
 function CompleteEngagementSystem({ user }: { user: any }) {
@@ -156,6 +159,17 @@ function SimpleLoginForm() {
   const [password, setPassword] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [currentView, setCurrentView] = React.useState<'login' | 'reset' | 'reset-confirm'>(() => {
+    // Check URL parameters for password reset
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('token')) {
+      return 'reset-confirm'
+    }
+    if (window.location.pathname === '/reset-password') {
+      return 'reset'
+    }
+    return 'login'
+  })
 
   const login = useAuthStore(state => state.login)
 
@@ -165,33 +179,72 @@ function SimpleLoginForm() {
     setError('')
 
     try {
-      // Mock authentication for demo
-      if (email && password) {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // Get user from our data or create mock user
-        const existingUser = getUserByEmail(email)
-        const mockUser = existingUser || {
-          id: `temp-${Date.now()}`,
-          email,
-          name: email.split('@')[0],
-          role: determineRoleFromEmail(email),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+      if (!email || !password) {
+        setError('Please enter email and password')
+        return
+      }
+
+      // Try authentication with User Management service
+      const { userManagementService } = await import('../api/userManagement')
+      const authenticatedUser = await userManagementService.authenticateUser(email, password)
+      
+      if (authenticatedUser) {
+        // Check if user must change password
+        if (authenticatedUser.must_change_password) {
+          setError('You must change your password. Please use the forgot password link to reset it.')
+          return
+        }
+
+        // Check if user is active
+        if (!authenticatedUser.is_active || authenticatedUser.status !== 'active') {
+          setError('Your account is not active. Please contact your administrator.')
+          return
+        }
+
+        // Convert to the format expected by auth store
+        const authUser = {
+          id: authenticatedUser.id,
+          email: authenticatedUser.email,
+          name: `${authenticatedUser.first_name} ${authenticatedUser.last_name}`,
+          role: authenticatedUser.user_role?.dashboard_access || 'REP',
+          created_at: authenticatedUser.created_at,
+          updated_at: authenticatedUser.updated_at
         }
         
-        login(mockUser)
+        login(authUser)
       } else {
-        setError('Please enter email and password')
+        setError('Invalid email or password')
       }
-    } catch {
-      setError('Login failed')
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('Login failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Handle navigation between views
+  const handleBackToLogin = () => {
+    setCurrentView('login')
+    window.history.pushState({}, '', '/')
+  }
+
+  const handleShowPasswordReset = () => {
+    setCurrentView('reset')
+    window.history.pushState({}, '', '/reset-password')
+  }
+
+  // Render password reset confirmation view
+  if (currentView === 'reset-confirm') {
+    return <PasswordResetConfirm />
+  }
+
+  // Render password reset request view
+  if (currentView === 'reset') {
+    return <PasswordReset onBack={handleBackToLogin} />
+  }
+
+  // Render login form
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -290,14 +343,24 @@ function SimpleLoginForm() {
           color: '#666', 
           textAlign: 'center' 
         }}>
-          <p>Demo accounts:</p>
-          <p>chris@company.com (Admin)</p>
-          <p>derek@company.com (Manager)</p>
-          <p>rolando@company.com (Rep)</p>
-          <p>amanda@company.com (Rep)</p>
-          <p>lisa@company.com (Rep)</p>
-          <p>josh@company.com (Rep)</p>
-          <p>steph@company.com (Rep)</p>
+          <button
+            type="button"
+            onClick={handleShowPasswordReset}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#059669',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              fontSize: '14px',
+              marginBottom: '10px'
+            }}
+          >
+            Forgot your password?
+          </button>
+          <p style={{ marginTop: '15px', fontSize: '12px', color: '#999' }}>
+            Don't have an account? Contact your administrator.
+          </p>
         </div>
       </div>
     </div>
@@ -306,6 +369,7 @@ function SimpleLoginForm() {
 
 function App() {
   const { isAuthenticated, user } = useAuthStore()
+  const [showUserSettings, setShowUserSettings] = React.useState(false)
 
   if (!isAuthenticated || !user) {
     return <SimpleLoginForm />
@@ -327,6 +391,19 @@ function App() {
             }}>
               {user?.role}
             </span>
+            <button 
+              onClick={() => setShowUserSettings(true)}
+              style={{ 
+                padding: '8px 16px', 
+                backgroundColor: '#059669', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              ⚙️ Settings
+            </button>
             <button 
               onClick={() => useAuthStore.getState().logout()}
               style={{ 
@@ -350,6 +427,11 @@ function App() {
       <main>
         <AppContent user={user} />
       </main>
+
+      {/* User Settings Modal */}
+      {showUserSettings && (
+        <UserSettings onClose={() => setShowUserSettings(false)} />
+      )}
     </div>
   )
 }

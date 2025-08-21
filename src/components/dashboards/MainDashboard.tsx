@@ -1,10 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useEngagements } from '../../hooks/useEngagements'
 import KanbanBoard from '../KanbanBoard'
 import RepDashboard from '../RepDashboard'
 import ManagerDashboard from '../ManagerDashboard'
 import ErrorBoundary from '../ErrorBoundary'
+import UserRoleManagement from '../admin/UserRoleManagement'
+import UserManagement from '../admin/UserManagement'
+import { Settings, Users, Shield, Plus } from 'lucide-react'
+import { hasPermission, canAccessDashboard } from '../../utils/permissionUtils'
 
 export default function MainDashboard() {
   const { user } = useAuthStore()
@@ -24,6 +28,20 @@ export default function MainDashboard() {
 
 function AdminDashboard() {
   const { data: engagements, isLoading, error } = useEngagements()
+  const { user } = useAuthStore()
+  const [showUserRoleManagement, setShowUserRoleManagement] = useState(false)
+  const [showUserManagement, setShowUserManagement] = useState(false)
+
+  // Check if user has admin capabilities
+  // For now using simple role-based checks, can be enhanced with permission system later
+  const hasAdminAccess = user?.role === 'ADMIN'
+  const canManageUsers = user?.role === 'ADMIN' // Only full admins can manage users
+  const canManageRoles = user?.role === 'ADMIN' // Only full admins can manage roles
+  
+  // Future enhancement: Use permission-based checks when user object includes role permissions
+  // const hasAdminAccess = canAccessDashboard(user as UserWithRole, 'Admin')
+  // const canManageUsers = hasPermission(user as UserWithRole, 'can_create_users')
+  // const canManageRoles = hasPermission(user as UserWithRole, 'can_manage_user_roles')
 
   if (isLoading) {
     return (
@@ -43,7 +61,81 @@ function AdminDashboard() {
 
   return (
     <div>
-      <h2>Administrator Dashboard</h2>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Administrator Dashboard</h2>
+        
+        {/* Admin Tools Section */}
+        {hasAdminAccess ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Admin Tools</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {canManageUsers && (
+                <button
+                  onClick={() => setShowUserManagement(true)}
+                  className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-left"
+                >
+                  <Users className="w-6 h-6 text-green-600" />
+                  <div>
+                    <div className="font-medium text-green-900">User Management</div>
+                    <div className="text-sm text-green-700">Add, edit, and manage users</div>
+                  </div>
+                </button>
+              )}
+              
+              {canManageRoles && (
+                <button
+                  onClick={() => setShowUserRoleManagement(true)}
+                  className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-left"
+                >
+                  <Shield className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <div className="font-medium text-blue-900">Role Management</div>
+                    <div className="text-sm text-blue-700">Create and assign user roles</div>
+                  </div>
+                </button>
+              )}
+              
+              {canManageUsers && (
+                <button
+                  onClick={() => setShowUserManagement(true)}
+                  className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors text-left"
+                >
+                  <Plus className="w-6 h-6 text-purple-600" />
+                  <div>
+                    <div className="font-medium text-purple-900">Add New User</div>
+                    <div className="text-sm text-purple-700">Create a new user account</div>
+                  </div>
+                </button>
+              )}
+              
+              {canManageRoles && (
+                <button
+                  onClick={() => setShowUserRoleManagement(true)}
+                  className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors text-left"
+                >
+                  <Settings className="w-6 h-6 text-orange-600" />
+                  <div>
+                    <div className="font-medium text-orange-900">System Settings</div>
+                    <div className="text-sm text-orange-700">Configure system settings</div>
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+            <div className="flex items-center">
+              <div className="text-yellow-600 mr-3">⚠️</div>
+              <div>
+                <h3 className="text-lg font-medium text-yellow-800">Admin Access Required</h3>
+                <p className="text-yellow-700">You need administrator privileges to access admin tools.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '30px' }}>
         <DashboardCard
           title="Total Engagements"
@@ -72,6 +164,15 @@ function AdminDashboard() {
       </div>
       
       {engagements && <KanbanBoard engagements={engagements} />}
+
+      {/* User Management Modals - Only show if user has permissions */}
+      {showUserRoleManagement && canManageRoles && (
+        <UserRoleManagement onClose={() => setShowUserRoleManagement(false)} />
+      )}
+      
+      {showUserManagement && canManageUsers && (
+        <UserManagement onClose={() => setShowUserManagement(false)} />
+      )}
     </div>
   )
 }
