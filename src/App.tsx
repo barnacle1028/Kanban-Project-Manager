@@ -1,194 +1,33 @@
 import React from 'react'
 import { useAuthStore } from './store/authStore'
-import MainDashboard from './components/dashboards/MainDashboard'
+import { comprehensiveEngagements, getEngagementsByRep, getEngagementsByManager, getEngagementById } from './data/comprehensiveEngagements'
+import { userData, getUserByEmail, determineRoleFromEmail } from './data/userData'
+import type { EngagementWithMilestones } from './api/types'
 
-// Import original engagement components
-import RepDashboard from './components/RepDashboard'
-import EngagementDetails from './components/EngagementDetails'
-import KanbanBoard from './components/KanbanBoard'
-import MilestoneManager from './components/MilestoneManager'
-
-// Sample engagement data with your original structure
-const mockEngagements = [
-  {
-    id: '1',
-    name: 'ABC Corporation Website Redesign',
-    assignedRep: 'rep',
-    health: 'GREEN' as const,
-    status: 'ACTIVE' as const,
-    startDate: '2025-08-01',
-    closeDate: '2025-09-15',
-    salesType: 'Direct Sell' as const,
-    speed: 'Fast' as const,
-    crm: 'Salesforce' as const,
-    soldBy: 'John Sales',
-    seatCount: 50,
-    hoursAlloted: 40,
-    primaryContactName: 'Jane Smith',
-    primaryContactEmail: 'jane@abccorp.com',
-    linkedinLink: 'https://linkedin.com/in/janesmith',
-    avazaLink: 'https://app.avaza.com/project/123',
-    projectFolderLink: 'https://drive.google.com/folder/abc123',
-    clientWebsiteLink: 'https://abccorp.com',
-    addOnsPurchased: ['Meet', 'Deal'] as const,
-    milestones: [
-      {
-        id: 'm1',
-        name: 'Requirements Gathering',
-        stage: 'COMPLETED' as const,
-        owner: 'rep',
-        dueDate: '2025-08-10',
-        notPurchased: false,
-        stageHistory: [
-          { stage: 'COMPLETED' as const, date: '2025-08-09', note: 'Completed ahead of schedule' }
-        ]
-      },
-      {
-        id: 'm2', 
-        name: 'Design Mockups',
-        stage: 'WORKSHOP' as const,
-        owner: 'rep',
-        dueDate: '2025-08-20',
-        notPurchased: false,
-        stageHistory: [
-          { stage: 'INITIAL_CALL' as const, date: '2025-08-15', note: 'Initial design call completed' }
-        ]
-      },
-      {
-        id: 'm3',
-        name: 'Frontend Development', 
-        stage: 'INITIAL_CALL' as const,
-        owner: 'rep',
-        dueDate: '2025-09-01',
-        notPurchased: false,
-        stageHistory: []
-      },
-      {
-        id: 'm4',
-        name: 'Testing & Launch',
-        stage: 'NOT_STARTED' as const,
-        owner: '',
-        dueDate: '2025-09-15',
-        notPurchased: false,
-        stageHistory: []
-      }
-    ]
-  },
-  {
-    id: '2',
-    name: 'XYZ Industries CRM Implementation',
-    assignedRep: 'rep',
-    health: 'YELLOW' as const,
-    status: 'ACTIVE' as const,
-    startDate: '2025-08-15',
-    closeDate: '2025-10-01',
-    salesType: 'Channel' as const,
-    speed: 'Medium' as const,
-    crm: 'Hubspot' as const,
-    soldBy: 'Sarah Sales',
-    seatCount: 25,
-    hoursAlloted: 60,
-    primaryContactName: 'Bob Johnson',
-    primaryContactEmail: 'bob@xyzind.com',
-    linkedinLink: 'https://linkedin.com/in/bobjohnson',
-    avazaLink: 'https://app.avaza.com/project/456',
-    projectFolderLink: 'https://drive.google.com/folder/xyz456',
-    clientWebsiteLink: 'https://xyzindustries.com',
-    addOnsPurchased: ['Forecasting', 'AI Agents'] as const,
-    milestones: [
-      {
-        id: 'm5',
-        name: 'Discovery Workshop',
-        stage: 'COMPLETED' as const,
-        owner: 'rep',
-        dueDate: '2025-08-25',
-        notPurchased: false,
-        stageHistory: [
-          { stage: 'COMPLETED' as const, date: '2025-08-24', note: 'Workshop completed successfully' }
-        ]
-      },
-      {
-        id: 'm6',
-        name: 'Data Migration Planning',
-        stage: 'WORKSHOP' as const,
-        owner: 'rep',
-        dueDate: '2025-09-05',
-        notPurchased: false,
-        stageHistory: []
-      },
-      {
-        id: 'm7',
-        name: 'User Training',
-        stage: 'NOT_STARTED' as const,
-        owner: '',
-        dueDate: '2025-09-20',
-        notPurchased: false,
-        stageHistory: []
-      },
-      {
-        id: 'm8',
-        name: 'Go Live Support',
-        stage: 'NOT_STARTED' as const,
-        owner: '',
-        dueDate: '2025-10-01',
-        notPurchased: false,
-        stageHistory: []
-      }
-    ]
-  }
-]
 
 function CompleteEngagementSystem({ user }: { user: any }) {
   const [selectedEngagementId, setSelectedEngagementId] = React.useState<string | null>(null)
-  const [engagements, setEngagements] = React.useState(mockEngagements)
-  const [musicEnabled, setMusicEnabled] = React.useState(false)
-
-  const updateEngagement = (engagementId: string, updates: any) => {
-    setEngagements(prev => prev.map(eng => 
-      eng.id === engagementId ? { ...eng, ...updates } : eng
-    ))
-  }
-
-  const updateMilestone = (engagementId: string, milestoneId: string, updates: any) => {
-    setEngagements(prev => prev.map(eng => {
-      if (eng.id === engagementId) {
-        return {
-          ...eng,
-          milestones: eng.milestones.map(m => 
-            m.id === milestoneId ? { ...m, ...updates } : m
-          )
-        }
+  
+  // Get engagements based on user role
+  const engagements = React.useMemo(() => {
+    if (user.role === 'REP') {
+      return getEngagementsByRep(user.id)
+    } else if (user.role === 'MANAGER') {
+      // If Derek (manager), show his reps' engagements
+      if (user.name === 'Derek') {
+        return getEngagementsByManager(user.id)
       }
-      return eng
-    }))
-  }
+      // If Chris (admin), show all engagements
+      return comprehensiveEngagements
+    }
+    return []
+  }, [user.role, user.id, user.name])
 
-  const addMilestone = (engagementId: string, milestone: any) => {
-    setEngagements(prev => prev.map(eng => {
-      if (eng.id === engagementId) {
-        return {
-          ...eng,
-          milestones: [...eng.milestones, { ...milestone, id: `custom-${Date.now()}` }]
-        }
-      }
-      return eng
-    }))
-  }
+  const isAdmin = user.name === 'Chris'
 
-  const removeMilestone = (engagementId: string, milestoneId: string) => {
-    setEngagements(prev => prev.map(eng => {
-      if (eng.id === engagementId) {
-        return {
-          ...eng,
-          milestones: eng.milestones.filter(m => m.id !== milestoneId)
-        }
-      }
-      return eng
-    }))
-  }
 
   const selectedEngagement = selectedEngagementId 
-    ? engagements.find(e => e.id === selectedEngagementId)
+    ? getEngagementById(selectedEngagementId)
     : null
 
   if (selectedEngagement) {
@@ -237,18 +76,36 @@ function CompleteEngagementSystem({ user }: { user: any }) {
         </div>
 
         {/* Engagement Details */}
-        <EngagementDetails 
-          engagement={selectedEngagement}
-          onEngagementChange={(updates) => updateEngagement(selectedEngagement.id, updates)}
-        />
-
-        {/* Milestone Manager */}
-        <MilestoneManager
-          milestones={selectedEngagement.milestones}
-          onAdd={(milestone) => addMilestone(selectedEngagement.id, milestone)}
-          onRemove={(milestoneId) => removeMilestone(selectedEngagement.id, milestoneId)}
-          onUpdate={(milestoneId, updates) => updateMilestone(selectedEngagement.id, milestoneId, updates)}
-        />
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '12px', 
+          padding: '20px', 
+          marginBottom: '20px' 
+        }}>
+          <h2 style={{ 
+            margin: '0 0 20px 0', 
+            color: '#253D2C',
+            fontFamily: 'Trebuchet MS, Arial, sans-serif'
+          }}>
+            Engagement Details
+          </h2>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px'}}>
+            <div>
+              <h3 style={{color: '#253D2C', marginBottom: '10px'}}>Account Information</h3>
+              <p><strong>Account:</strong> {selectedEngagement.account.name}</p>
+              <p><strong>Owner:</strong> {selectedEngagement.owner.name}</p>
+              <p><strong>Status:</strong> <span style={{color: selectedEngagement.health === 'GREEN' ? '#28a745' : selectedEngagement.health === 'YELLOW' ? '#ffc107' : '#dc3545'}}>{selectedEngagement.status}</span></p>
+              <p><strong>Health:</strong> <span style={{color: selectedEngagement.health === 'GREEN' ? '#28a745' : selectedEngagement.health === 'YELLOW' ? '#ffc107' : '#dc3545'}}>{selectedEngagement.health}</span></p>
+            </div>
+            <div>
+              <h3 style={{color: '#253D2C', marginBottom: '10px'}}>Timeline</h3>
+              <p><strong>Start Date:</strong> {selectedEngagement.start_date}</p>
+              <p><strong>Target Launch:</strong> {selectedEngagement.target_launch_date}</p>
+              <p><strong>Progress:</strong> {selectedEngagement.percent_complete}%</p>
+              <p><strong>Priority:</strong> {selectedEngagement.priority}/5</p>
+            </div>
+          </div>
+        </div>
 
         {/* Milestone Management */}
         <div style={{ 
@@ -264,20 +121,7 @@ function CompleteEngagementSystem({ user }: { user: any }) {
           }}>
             Milestone Phases
           </h2>
-          <KanbanBoard
-            engagement={selectedEngagement}
-            onMilestoneOwnerChange={(milestoneId, owner) => 
-              updateMilestone(selectedEngagement.id, milestoneId, { owner })
-            }
-            onMilestoneStageChange={(milestoneId, stage) => 
-              updateMilestone(selectedEngagement.id, milestoneId, { stage })
-            }
-            onMilestoneNotPurchasedChange={(milestoneId, notPurchased) =>
-              updateMilestone(selectedEngagement.id, milestoneId, { notPurchased })
-            }
-            musicEnabled={musicEnabled}
-            onMusicToggle={setMusicEnabled}
-          />
+          <SimpleKanbanView milestones={selectedEngagement.milestones} />
         </div>
       </div>
     )
@@ -286,9 +130,9 @@ function CompleteEngagementSystem({ user }: { user: any }) {
   // Show dashboard based on role
   if (user.role === 'REP') {
     return (
-      <RepDashboard
+      <RepDashboardView
         engagements={engagements}
-        repName={user.email.split('@')[0]}
+        user={user}
         onSelectEngagement={setSelectedEngagementId}
       />
     )
@@ -296,35 +140,12 @@ function CompleteEngagementSystem({ user }: { user: any }) {
 
   // Manager/Admin view - show all engagements across reps
   return (
-    <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px' }}>
-      <div style={{ 
-        background: 'white', 
-        borderRadius: '12px', 
-        padding: '20px', 
-        marginBottom: '20px' 
-      }}>
-        <h1 style={{ 
-          margin: 0, 
-          color: '#253D2C',
-          fontFamily: 'Trebuchet MS, Arial, sans-serif'
-        }}>
-          All Rep Engagements - {user.role} View
-        </h1>
-        <p style={{ 
-          margin: '5px 0 0 0', 
-          color: '#68BA7F',
-          fontFamily: 'Trebuchet MS, Arial, sans-serif'
-        }}>
-          Overview of all representative engagements
-        </p>
-      </div>
-
-      <RepDashboard
-        engagements={engagements}
-        repName="All Reps"
-        onSelectEngagement={setSelectedEngagementId}
-      />
-    </div>
+    <ManagerDashboardView
+      engagements={engagements}
+      user={user}
+      onSelectEngagement={setSelectedEngagementId}
+      isAdmin={isAdmin}
+    />
   )
 }
 
@@ -348,19 +169,22 @@ function SimpleLoginForm() {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        // Mock user data
-        const mockUser = {
-          id: '1',
+        // Get user from our data or create mock user
+        const existingUser = getUserByEmail(email)
+        const mockUser = existingUser || {
+          id: `temp-${Date.now()}`,
           email,
           name: email.split('@')[0],
-          role: email.includes('admin') ? 'ADMIN' : email.includes('manager') ? 'MANAGER' : 'REP'
+          role: determineRoleFromEmail(email),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }
         
         login(mockUser)
       } else {
         setError('Please enter email and password')
       }
-    } catch (err) {
+    } catch {
       setError('Login failed')
     } finally {
       setIsLoading(false)
@@ -466,9 +290,13 @@ function SimpleLoginForm() {
           textAlign: 'center' 
         }}>
           <p>Demo accounts:</p>
-          <p>admin@kanbanpm.com (Admin)</p>
-          <p>manager@kanbanpm.com (Manager)</p>
-          <p>rep@kanbanpm.com (Rep)</p>
+          <p>chris@company.com (Admin)</p>
+          <p>derek@company.com (Manager)</p>
+          <p>rolando@company.com (Rep)</p>
+          <p>amanda@company.com (Rep)</p>
+          <p>lisa@company.com (Rep)</p>
+          <p>josh@company.com (Rep)</p>
+          <p>steph@company.com (Rep)</p>
         </div>
       </div>
     </div>
@@ -669,192 +497,6 @@ function EngagementsView({ user }: { user: any }) {
   return <CompleteEngagementSystem user={user} />
 }
 
-function EngagementsDashboard({ user }: { user: any }) {
-  // Mock engagement data based on user role
-  const mockEngagements = React.useMemo(() => {
-    if (user.role === 'REP') {
-      return [
-        {
-          id: '1',
-          title: 'ABC Corp Website Redesign',
-          client: 'ABC Corporation',
-          status: 'IN_PROGRESS',
-          startDate: '2025-08-01',
-          endDate: '2025-09-15',
-          assignedRep: user.email.split('@')[0],
-          milestones: [
-            { id: '1', title: 'Requirements Gathering', stage: 'DONE', dueDate: '2025-08-10' },
-            { id: '2', title: 'Design Mockups', stage: 'IN_PROGRESS', dueDate: '2025-08-20' },
-            { id: '3', title: 'Development', stage: 'TODO', dueDate: '2025-09-01' },
-            { id: '4', title: 'Testing & Launch', stage: 'TODO', dueDate: '2025-09-15' },
-          ]
-        },
-        {
-          id: '2',
-          title: 'XYZ Marketing Campaign',
-          client: 'XYZ Industries',
-          status: 'PLANNING',
-          startDate: '2025-08-15',
-          endDate: '2025-10-01',
-          assignedRep: user.email.split('@')[0],
-          milestones: [
-            { id: '5', title: 'Market Research', stage: 'IN_PROGRESS', dueDate: '2025-08-25' },
-            { id: '6', title: 'Strategy Development', stage: 'TODO', dueDate: '2025-09-05' },
-            { id: '7', title: 'Creative Assets', stage: 'TODO', dueDate: '2025-09-20' },
-            { id: '8', title: 'Campaign Launch', stage: 'TODO', dueDate: '2025-10-01' },
-          ]
-        }
-      ]
-    } else {
-      // Manager/Admin sees multiple reps' engagements
-      return [
-        {
-          id: '1',
-          title: 'ABC Corp Website Redesign',
-          client: 'ABC Corporation',
-          status: 'IN_PROGRESS',
-          assignedRep: 'john',
-          milestones: [{ id: '1', title: 'Design Mockups', stage: 'IN_PROGRESS', dueDate: '2025-08-20' }]
-        },
-        {
-          id: '2',
-          title: 'XYZ Marketing Campaign',
-          client: 'XYZ Industries',
-          status: 'PLANNING',
-          assignedRep: 'sarah',
-          milestones: [{ id: '2', title: 'Market Research', stage: 'IN_PROGRESS', dueDate: '2025-08-25' }]
-        },
-        {
-          id: '3',
-          title: 'DEF Mobile App',
-          client: 'DEF Solutions',
-          status: 'IN_PROGRESS',
-          assignedRep: 'mike',
-          milestones: [{ id: '3', title: 'UI Development', stage: 'IN_PROGRESS', dueDate: '2025-08-30' }]
-        }
-      ]
-    }
-  }, [user.role, user.email])
-
-  const [selectedEngagement, setSelectedEngagement] = React.useState<string | null>(null)
-
-  if (selectedEngagement && user.role === 'REP') {
-    const engagement = mockEngagements.find(e => e.id === selectedEngagement)
-    if (engagement) {
-      return <EngagementDetail engagement={engagement} onBack={() => setSelectedEngagement(null)} />
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PLANNING': return '#ffc107'
-      case 'IN_PROGRESS': return '#007bff'
-      case 'COMPLETED': return '#28a745'
-      case 'ON_HOLD': return '#dc3545'
-      default: return '#6c757d'
-    }
-  }
-
-  return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>{user.role === 'REP' ? '📝 My Engagements' : '👥 All Rep Engagements'}</h2>
-        {user.role === 'REP' && (
-          <button style={{
-            padding: '10px 20px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}>
-            ➕ New Engagement
-          </button>
-        )}
-      </div>
-
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: user.role === 'REP' ? '1fr' : 'repeat(auto-fill, minmax(350px, 1fr))', 
-        gap: '20px' 
-      }}>
-        {mockEngagements.map(engagement => (
-          <div
-            key={engagement.id}
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              padding: '20px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              border: '1px solid #e1e5e9',
-              cursor: user.role === 'REP' ? 'pointer' : 'default'
-            }}
-            onClick={() => user.role === 'REP' && setSelectedEngagement(engagement.id)}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px' }}>{engagement.title}</h3>
-              <span style={{
-                backgroundColor: getStatusColor(engagement.status),
-                color: 'white',
-                padding: '4px 8px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>
-                {engagement.status.replace('_', ' ')}
-              </span>
-            </div>
-            
-            <p style={{ margin: '0 0 10px 0', color: '#666' }}>
-              <strong>Client:</strong> {engagement.client}
-            </p>
-            
-            {user.role !== 'REP' && (
-              <p style={{ margin: '0 0 10px 0', color: '#666' }}>
-                <strong>Rep:</strong> {engagement.assignedRep}
-              </p>
-            )}
-
-            <div style={{ marginTop: '15px' }}>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>📋 Milestones Progress</h4>
-              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                {engagement.milestones?.slice(0, 4).map(milestone => (
-                  <span
-                    key={milestone.id}
-                    style={{
-                      backgroundColor: milestone.stage === 'DONE' ? '#28a745' : 
-                                      milestone.stage === 'IN_PROGRESS' ? '#ffc107' : '#e9ecef',
-                      color: milestone.stage === 'TODO' ? '#495057' : 'white',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      fontSize: '10px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    {milestone.title}
-                  </span>
-                ))}
-                {engagement.milestones && engagement.milestones.length > 4 && (
-                  <span style={{ fontSize: '10px', color: '#666' }}>
-                    +{engagement.milestones.length - 4} more
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {user.role === 'REP' && (
-              <div style={{ marginTop: '15px', textAlign: 'right' }}>
-                <span style={{ fontSize: '12px', color: '#007bff' }}>
-                  Click to view milestones →
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 function EngagementDetail({ engagement, onBack }: { engagement: any, onBack: () => void }) {
   const [milestones, setMilestones] = React.useState(engagement.milestones)
@@ -1008,6 +650,328 @@ declare global {
   interface Window {
     currentView: string
   }
+}
+
+// Simple Kanban view component
+function SimpleKanbanView({ milestones }: { milestones: any[] }) {
+  const stages = {
+    'NOT_STARTED': { label: 'Not Started', color: '#f3f4f6' },
+    'INITIAL_CALL': { label: 'Initial Call', color: '#fef3c7' },
+    'WORKSHOP': { label: 'Workshop', color: '#dbeafe' },
+    'COMPLETED': { label: 'Completed', color: '#d1fae5' }
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+      {Object.entries(stages).map(([stageKey, stage]) => {
+        const stageMilestones = milestones.filter(m => m.stage === stageKey)
+        return (
+          <div key={stageKey} style={{ 
+            background: stage.color, 
+            padding: '15px', 
+            borderRadius: '8px',
+            minHeight: '200px'
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#374151' }}>{stage.label} ({stageMilestones.length})</h4>
+            {stageMilestones.map(milestone => (
+              <div key={milestone.id} style={{
+                background: 'white',
+                padding: '8px',
+                margin: '5px 0',
+                borderRadius: '4px',
+                fontSize: '12px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                  {milestone.template?.name || 'Milestone'}
+                </div>
+                {milestone.due_date && (
+                  <div style={{ color: '#6b7280', fontSize: '10px' }}>
+                    Due: {milestone.due_date}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Rep Dashboard View
+function RepDashboardView({ engagements, user, onSelectEngagement }: {
+  engagements: EngagementWithMilestones[]
+  user: any
+  onSelectEngagement: (id: string) => void
+}) {
+  return (
+    <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px' }}>
+      <div style={{ 
+        background: 'white', 
+        borderRadius: '12px', 
+        padding: '20px', 
+        marginBottom: '20px' 
+      }}>
+        <h1 style={{ 
+          margin: 0, 
+          color: '#253D2C',
+          fontFamily: 'Trebuchet MS, Arial, sans-serif'
+        }}>
+          {user.name}'s Dashboard
+        </h1>
+        <p style={{ 
+          margin: '5px 0 0 0', 
+          color: '#68BA7F',
+          fontFamily: 'Trebuchet MS, Arial, sans-serif'
+        }}>
+          Your active engagements and milestones
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
+        {engagements.map(engagement => (
+          <div key={engagement.id} style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '20px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}
+          onClick={() => onSelectEngagement(engagement.id)}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0, color: '#253D2C' }}>{engagement.account.name}</h3>
+              <span style={{
+                background: engagement.health === 'GREEN' ? '#d1fae5' : engagement.health === 'YELLOW' ? '#fef3c7' : '#fee2e2',
+                color: engagement.health === 'GREEN' ? '#065f46' : engagement.health === 'YELLOW' ? '#92400e' : '#991b1b',
+                padding: '4px 8px',
+                borderRadius: '12px',
+                fontSize: '12px'
+              }}>
+                {engagement.health}
+              </span>
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 10px 0' }}>
+              Status: {engagement.status} | Progress: {engagement.percent_complete}%
+            </p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '0' }}>
+              Due: {engagement.target_launch_date}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Manager Dashboard View  
+function ManagerDashboardView({ engagements, user, onSelectEngagement, isAdmin = false }: {
+  engagements: EngagementWithMilestones[]
+  user: any
+  onSelectEngagement: (id: string) => void
+  isAdmin?: boolean
+}) {
+  const repEngagements = React.useMemo(() => {
+    const repMap: Record<string, EngagementWithMilestones[]> = {}
+    engagements.forEach(eng => {
+      const repName = eng.owner.name
+      if (!repMap[repName]) repMap[repName] = []
+      repMap[repName].push(eng)
+    })
+    return repMap
+  }, [engagements])
+
+  const [selectedRep, setSelectedRep] = React.useState<string | null>(null)
+
+  if (selectedRep && repEngagements[selectedRep]) {
+    const selectedRepUser = userData.find(u => u.name === selectedRep)
+    return (
+      <RepDashboardView 
+        engagements={repEngagements[selectedRep]}
+        user={selectedRepUser || { name: selectedRep }}
+        onSelectEngagement={onSelectEngagement}
+      />
+    )
+  }
+
+  return (
+    <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px' }}>
+      <div style={{ 
+        background: 'white', 
+        borderRadius: '12px', 
+        padding: '20px', 
+        marginBottom: '20px' 
+      }}>
+        <h1 style={{ 
+          margin: 0, 
+          color: '#253D2C',
+          fontFamily: 'Trebuchet MS, Arial, sans-serif'
+        }}>
+          {isAdmin ? 'Admin' : 'Manager'} Dashboard - {user.name}
+        </h1>
+        <p style={{ 
+          margin: '5px 0 0 0', 
+          color: '#68BA7F',
+          fontFamily: 'Trebuchet MS, Arial, sans-serif'
+        }}>
+          {isAdmin ? 'System administration and user management' : 'Overview of all team engagements'}
+        </p>
+      </div>
+
+      {/* Summary Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+          <h3 style={{ color: '#253D2C', margin: '0 0 10px 0' }}>Total Engagements</h3>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2E6F40' }}>{engagements.length}</div>
+        </div>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+          <h3 style={{ color: '#253D2C', margin: '0 0 10px 0' }}>Active Reps</h3>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2E6F40' }}>{Object.keys(repEngagements).length}</div>
+        </div>
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+          <h3 style={{ color: '#253D2C', margin: '0 0 10px 0' }}>In Progress</h3>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2E6F40' }}>{engagements.filter(e => e.status === 'IN_PROGRESS').length}</div>
+        </div>
+        {isAdmin && (
+          <div style={{ background: 'white', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+            <h3 style={{ color: '#253D2C', margin: '0 0 10px 0' }}>System Users</h3>
+            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2E6F40' }}>{userData.length}</div>
+          </div>
+        )}
+      </div>
+
+      {isAdmin && (
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '12px', 
+          padding: '20px', 
+          marginBottom: '20px' 
+        }}>
+          <h2 style={{ 
+            margin: '0 0 20px 0', 
+            color: '#253D2C',
+            fontFamily: 'Trebuchet MS, Arial, sans-serif'
+          }}>
+            Admin Tools
+          </h2>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button style={{
+              background: '#2E6F40',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontFamily: 'Trebuchet MS, Arial, sans-serif'
+            }}>
+              Add New User
+            </button>
+            <button style={{
+              background: '#2E6F40',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontFamily: 'Trebuchet MS, Arial, sans-serif'
+            }}>
+              Add New Engagement
+            </button>
+            <button style={{
+              background: '#2E6F40',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontFamily: 'Trebuchet MS, Arial, sans-serif'
+            }}>
+              Manage User Roles
+            </button>
+            <button style={{
+              background: '#2E6F40',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontFamily: 'Trebuchet MS, Arial, sans-serif'
+            }}>
+              System Settings
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rep Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '20px' }}>
+        {Object.entries(repEngagements).map(([repName, repEngagements]) => (
+          <div key={repName} style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '20px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}
+          onClick={() => setSelectedRep(repName)}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0, color: '#253D2C' }}>{repName}</h3>
+              <span style={{ color: '#68BA7F', fontSize: '14px' }}>Click to view →</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '15px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2E6F40' }}>{repEngagements.length}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>Total</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2E6F40' }}>{repEngagements.filter(e => e.status === 'IN_PROGRESS').length}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>Active</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2E6F40' }}>{repEngagements.filter(e => e.health === 'GREEN').length}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>Healthy</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '5px' }}>
+              {repEngagements.slice(0, 3).map(engagement => (
+                <div key={engagement.id} style={{
+                  flex: 1,
+                  padding: '8px',
+                  background: '#f9fafb',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  color: '#6b7280'
+                }}>
+                  {engagement.account.name.substring(0, 15)}...
+                </div>
+              ))}
+              {repEngagements.length > 3 && (
+                <div style={{ padding: '8px', fontSize: '10px', color: '#6b7280' }}>+{repEngagements.length - 3}</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {selectedRep && (
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <button 
+            onClick={() => setSelectedRep(null)}
+            style={{
+              background: '#6c757d',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            ← Back to All Reps
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default App
