@@ -268,34 +268,60 @@ router.post('/',
       // Set owner_user_id to the currently logged-in user
       let owner_user_id = req.user.id
       let assigned_rep_user_id = null
+      let account_id = null
+      
+      // Create or find account
+      console.log('Creating/finding account for:', accountName)
+      let accountResult = await query(
+        'SELECT id FROM account WHERE LOWER(name) = LOWER($1)',
+        [accountName]
+      )
+      
+      if (accountResult.rows.length > 0) {
+        account_id = accountResult.rows[0].id
+        console.log('Found existing account:', account_id)
+      } else {
+        // Create new account
+        const newAccountResult = await query(
+          'INSERT INTO account (name) VALUES ($1) RETURNING id',
+          [accountName]
+        )
+        account_id = newAccountResult.rows[0].id
+        console.log('Created new account:', account_id)
+      }
       
       // If assignedRep is provided, find the user ID
       if (assignedRep) {
+        console.log('Looking for assigned rep:', assignedRep)
         const repCheck = await query(
-          'SELECT id FROM users WHERE CONCAT(first_name, \' \', last_name) = $1 AND is_active = true',
-          [assignedRep]
+          'SELECT id FROM users WHERE CONCAT(first_name, \' \', last_name) = $1 AND is_active = true AND status = $2',
+          [assignedRep, 'active']
         )
+        console.log('Rep check result:', repCheck.rows)
         if (repCheck.rows.length > 0) {
           assigned_rep_user_id = repCheck.rows[0].id
+          console.log('Found assigned rep user ID:', assigned_rep_user_id)
+        } else {
+          console.log('No matching user found for assigned rep:', assignedRep)
         }
       }
 
       // Create engagement
       const createQuery = `
         INSERT INTO engagement (
-          owner_user_id, name, account_name, status, health, assigned_rep, assigned_rep_user_id,
+          account_id, owner_user_id, name, account_name, status, health, assigned_rep, assigned_rep_user_id,
           start_date, close_date, sales_type, speed, crm,
           avaza_link, project_folder_link, client_website_link,
           sold_by, seat_count, hours_allocated,
           primary_contact_name, primary_contact_email, linkedin_link,
           add_ons_purchased
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
         RETURNING *
       `
 
       const result = await query(createQuery, [
-        owner_user_id, name, accountName, status, health, assignedRep, assigned_rep_user_id,
+        account_id, owner_user_id, name, accountName, status, health, assignedRep, assigned_rep_user_id,
         startDate, closeDate, salesType, speed, crm,
         avazaLink, projectFolderLink, clientWebsiteLink,
         soldBy, seatCount, hoursAlloted,
