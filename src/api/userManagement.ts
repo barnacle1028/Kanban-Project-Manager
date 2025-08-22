@@ -13,9 +13,9 @@ import type {
   UserPreferences,
   Department,
   WelcomeEmailData,
-  PasswordResetEmailData,
-  DEFAULT_PASSWORD_REQUIREMENTS
+  PasswordResetEmailData
 } from '../types/userManagement'
+import { DEFAULT_PASSWORD_REQUIREMENTS } from '../types/userManagement'
 import { emailService } from '../services/emailService'
 import { auditService } from '../services/auditService'
 

@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import type { Engagement, Rep, ProjectStatus, SalesType, Speed, CRM, AddOn } from '../types'
+import type { UserWithRole } from '../types/userManagement'
 import { createStandardMilestones } from '../utils/standardMilestones'
+import { userManagementService } from '../api/userManagement'
 
 type SortOption = {
   column: string
@@ -102,6 +104,7 @@ export default function EngagementAdmin({
   const [editingEngagement, setEditingEngagement] = useState<string | null>(null)
   const [sortConfig, setSortConfig] = useState<SortOption>({ column: '', direction: 'none' })
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'ALL'>('ALL')
+  const [activeUsers, setActiveUsers] = useState<UserWithRole[]>([])
   const [formData, setFormData] = useState({
     name: '',
     accountName: '',
@@ -123,6 +126,19 @@ export default function EngagementAdmin({
     primaryContactEmail: '',
     linkedinLink: ''
   })
+
+  // Load active users on component mount
+  useEffect(() => {
+    const loadActiveUsers = async () => {
+      try {
+        const response = await userManagementService.getAllUsers({ is_active: true })
+        setActiveUsers(response.users)
+      } catch (error) {
+        console.error('Error loading active users:', error)
+      }
+    }
+    loadActiveUsers()
+  }, [])
 
   const handleSubmitAdd = (e: React.FormEvent) => {
     e.preventDefault()
@@ -482,9 +498,11 @@ export default function EngagementAdmin({
                     fontFamily: 'Trebuchet MS, Arial, sans-serif'
                   }}
                 >
-                  <option value="">Select Rep</option>
-                  {reps.filter(rep => rep.isActive).map(rep => (
-                    <option key={rep.id} value={rep.name}>{rep.name}</option>
+                  <option value="">Select Assigned Rep</option>
+                  {activeUsers.map(user => (
+                    <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
+                      {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
+                    </option>
                   ))}
                 </select>
               </div>
