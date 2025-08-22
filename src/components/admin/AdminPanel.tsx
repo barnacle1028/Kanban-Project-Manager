@@ -286,6 +286,8 @@ function NonModalUserManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState({})
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -311,6 +313,23 @@ function NonModalUserManagement() {
       setUsers([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user)
+    setShowEditModal(true)
+  }
+
+  const handleUpdateUser = async (userId, userData) => {
+    try {
+      await userManagementService.updateUser(userId, userData)
+      setShowEditModal(false)
+      setSelectedUser(null)
+      loadData()
+    } catch (error) {
+      console.error('Failed to update user:', error)
+      alert('Failed to update user: ' + error.message)
     }
   }
 
@@ -437,14 +456,17 @@ function NonModalUserManagement() {
                 </td>
                 <td style={{ padding: '12px', fontSize: '14px' }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button style={{
-                      padding: '4px 8px',
-                      fontSize: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      background: 'white',
-                      cursor: 'pointer'
-                    }}>
+                    <button 
+                      onClick={() => handleEditUser(user)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        background: 'white',
+                        cursor: 'pointer'
+                      }}
+                    >
                       Edit
                     </button>
                     <button 
@@ -524,6 +546,18 @@ function NonModalUserManagement() {
           </div>
         </div>
       )}
+
+      {showEditModal && selectedUser && (
+        <EditUserModal 
+          user={selectedUser}
+          userRoles={userRoles}
+          onSave={handleUpdateUser}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedUser(null)
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -581,6 +615,340 @@ function Reports() {
             </button>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function EditUserModal({ user, userRoles, onSave, onClose }) {
+  const [formData, setFormData] = useState({
+    first_name: user.first_name || '',
+    last_name: user.last_name || '',
+    email: user.email || '',
+    job_title: user.job_title || '',
+    department: user.department || '',
+    employee_id: user.employee_id || '',
+    phone: user.phone || '',
+    status: user.status || 'active',
+    employee_type: user.employee_type || 'full_time',
+    user_role_id: user.user_role?.id || ''
+  })
+
+  const [errors, setErrors] = useState({})
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    
+    // Basic validation
+    const newErrors = {}
+    if (!formData.first_name.trim()) newErrors.first_name = 'First name is required'
+    if (!formData.last_name.trim()) newErrors.last_name = 'Last name is required'
+    if (!formData.email.trim()) newErrors.email = 'Email is required'
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    onSave(user.id, formData)
+  }
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '90vh',
+        overflow: 'auto'
+      }}>
+        <div style={{
+          padding: '20px',
+          borderBottom: '1px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            Edit User: {user.first_name} {user.last_name}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#6b7280'
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                First Name *
+              </label>
+              <input
+                type="text"
+                value={formData.first_name}
+                onChange={(e) => handleChange('first_name', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: `1px solid ${errors.first_name ? '#dc2626' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+              {errors.first_name && (
+                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.first_name}</span>
+              )}
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Last Name *
+              </label>
+              <input
+                type="text"
+                value={formData.last_name}
+                onChange={(e) => handleChange('last_name', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: `1px solid ${errors.last_name ? '#dc2626' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+              {errors.last_name && (
+                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.last_name}</span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              Email *
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleChange('email', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: `1px solid ${errors.email ? '#dc2626' : '#d1d5db'}`,
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+            />
+            {errors.email && (
+              <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.email}</span>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Job Title
+              </label>
+              <input
+                type="text"
+                value={formData.job_title}
+                onChange={(e) => handleChange('job_title', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Department
+              </label>
+              <input
+                type="text"
+                value={formData.department}
+                onChange={(e) => handleChange('department', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Employee ID
+              </label>
+              <input
+                type="text"
+                value={formData.employee_id}
+                onChange={(e) => handleChange('employee_id', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => handleChange('phone', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => handleChange('status', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Employee Type
+              </label>
+              <select
+                value={formData.employee_type}
+                onChange={(e) => handleChange('employee_type', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="full_time">Full Time</option>
+                <option value="part_time">Part Time</option>
+                <option value="contractor">Contractor</option>
+                <option value="intern">Intern</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                User Role
+              </label>
+              <select
+                value={formData.user_role_id}
+                onChange={(e) => handleChange('user_role_id', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">No Role</option>
+                {userRoles.map(role => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                background: 'white',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: '8px 16px',
+                background: '#4f46e5',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
