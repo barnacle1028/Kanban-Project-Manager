@@ -234,8 +234,13 @@ router.post('/',
   ],
   async (req, res) => {
     try {
+      console.log('=== ENGAGEMENT CREATION REQUEST ===')
+      console.log('Request body:', JSON.stringify(req.body, null, 2))
+      console.log('User:', req.user)
+      
       const errors = validationResult(req)
       if (!errors.isEmpty()) {
+        console.log('Validation errors:', errors.array())
         return res.status(400).json({
           error: 'Validation failed',
           details: errors.array()
@@ -271,81 +276,132 @@ router.post('/',
       let account_id = null
       
       // Create or find account
-      console.log('Creating/finding account for:', accountName)
-      let accountResult = await query(
-        'SELECT id FROM account WHERE LOWER(name) = LOWER($1)',
-        [accountName]
-      )
-      
-      if (accountResult.rows.length > 0) {
-        account_id = accountResult.rows[0].id
-        console.log('Found existing account:', account_id)
-      } else {
-        // Create new account
-        const newAccountResult = await query(
-          'INSERT INTO account (name) VALUES ($1) RETURNING id',
+      try {
+        console.log('Creating/finding account for:', accountName)
+        let accountResult = await query(
+          'SELECT id FROM account WHERE LOWER(name) = LOWER($1)',
           [accountName]
         )
-        account_id = newAccountResult.rows[0].id
-        console.log('Created new account:', account_id)
+        
+        if (accountResult.rows.length > 0) {
+          account_id = accountResult.rows[0].id
+          console.log('Found existing account:', account_id)
+        } else {
+          // Create new account
+          console.log('Creating new account...')
+          const newAccountResult = await query(
+            'INSERT INTO account (name) VALUES ($1) RETURNING id',
+            [accountName]
+          )
+          account_id = newAccountResult.rows[0].id
+          console.log('Created new account:', account_id)
+        }
+      } catch (accountError) {
+        console.error('Account creation/lookup error:', accountError)
+        return res.status(500).json({ 
+          error: 'Failed to create or find account', 
+          details: accountError.message 
+        })
       }
       
       // If assignedRep is provided, find the user ID
       if (assignedRep) {
-        console.log('Looking for assigned rep:', assignedRep)
-        const repCheck = await query(
-          'SELECT id FROM users WHERE CONCAT(first_name, \' \', last_name) = $1 AND is_active = true AND status = $2',
-          [assignedRep, 'active']
-        )
-        console.log('Rep check result:', repCheck.rows)
-        if (repCheck.rows.length > 0) {
-          assigned_rep_user_id = repCheck.rows[0].id
-          console.log('Found assigned rep user ID:', assigned_rep_user_id)
-        } else {
-          console.log('No matching user found for assigned rep:', assignedRep)
+        try {
+          console.log('Looking for assigned rep:', assignedRep)
+          const repCheck = await query(
+            'SELECT id FROM users WHERE CONCAT(first_name, \' \', last_name) = $1 AND is_active = true AND status = $2',
+            [assignedRep, 'active']
+          )
+          console.log('Rep check result:', repCheck.rows)
+          if (repCheck.rows.length > 0) {
+            assigned_rep_user_id = repCheck.rows[0].id
+            console.log('Found assigned rep user ID:', assigned_rep_user_id)
+          } else {
+            console.log('No matching user found for assigned rep:', assignedRep)
+          }
+        } catch (repError) {
+          console.error('Assigned rep lookup error:', repError)
+          return res.status(500).json({ 
+            error: 'Failed to lookup assigned rep', 
+            details: repError.message 
+          })
         }
       }
 
       // Create engagement
-      const createQuery = `
-        INSERT INTO engagement (
-          account_id, owner_user_id, name, account_name, status, health, assigned_rep, assigned_rep_user_id,
-          start_date, close_date, sales_type, speed, crm,
-          avaza_link, project_folder_link, client_website_link,
-          sold_by, seat_count, hours_allocated,
-          primary_contact_name, primary_contact_email, linkedin_link,
-          add_ons_purchased
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
-        RETURNING *
-      `
+      let engagement
+      try {
+        console.log('Creating engagement with parameters:')
+        console.log('- account_id:', account_id)
+        console.log('- owner_user_id:', owner_user_id)
+        console.log('- name:', name)
+        console.log('- accountName:', accountName)
+        console.log('- assigned_rep_user_id:', assigned_rep_user_id)
+        
+        const createQuery = `
+          INSERT INTO engagement (
+            account_id, owner_user_id, name, account_name, status, health, assigned_rep, assigned_rep_user_id,
+            start_date, close_date, sales_type, speed, crm,
+            avaza_link, project_folder_link, client_website_link,
+            sold_by, seat_count, hours_allocated,
+            primary_contact_name, primary_contact_email, linkedin_link,
+            add_ons_purchased
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+          RETURNING *
+        `
 
-      const result = await query(createQuery, [
-        account_id, owner_user_id, name, accountName, status, health, assignedRep, assigned_rep_user_id,
-        startDate, closeDate, salesType, speed, crm,
-        avazaLink, projectFolderLink, clientWebsiteLink,
-        soldBy, seatCount, hoursAlloted,
-        primaryContactName, primaryContactEmail, linkedinLink,
-        addOnsPurchased
-      ])
+        console.log('Executing engagement creation query...')
+        const result = await query(createQuery, [
+          account_id, owner_user_id, name, accountName, status, health, assignedRep, assigned_rep_user_id,
+          startDate, closeDate, salesType, speed, crm,
+          avazaLink, projectFolderLink, clientWebsiteLink,
+          soldBy, seatCount, hoursAlloted,
+          primaryContactName, primaryContactEmail, linkedinLink,
+          addOnsPurchased
+        ])
+        console.log('Engagement created successfully:', result.rows[0].id)
+        
+        engagement = result.rows[0]
 
-      const engagement = result.rows[0]
+        // Create default milestones from templates
+        try {
+          console.log('Creating default milestones...')
+          const templatesResult = await query(
+            'SELECT * FROM milestone_template WHERE is_active = true ORDER BY order_index'
+          )
 
-      // Create default milestones from templates
-      const templatesResult = await query(
-        'SELECT * FROM milestone_template WHERE is_active = true ORDER BY order_index'
-      )
+          if (templatesResult.rows.length > 0) {
+            const milestoneInserts = templatesResult.rows.map(template => 
+              `($1, '${template.id}', 'NOT_STARTED')`
+            ).join(',')
 
-      if (templatesResult.rows.length > 0) {
-        const milestoneInserts = templatesResult.rows.map(template => 
-          `($1, '${template.id}', 'NOT_STARTED')`
-        ).join(',')
-
-        await query(
-          `INSERT INTO engagement_milestone (engagement_id, template_id, stage)
-           VALUES ${milestoneInserts}`,
-          [engagement.id]
-        )
+            await query(
+              `INSERT INTO engagement_milestone (engagement_id, template_id, stage)
+               VALUES ${milestoneInserts}`,
+              [engagement.id]
+            )
+            console.log('Created', templatesResult.rows.length, 'default milestones')
+          } else {
+            console.log('No milestone templates found')
+          }
+        } catch (milestoneError) {
+          console.error('Milestone creation error:', milestoneError)
+          // Don't fail the engagement creation if milestones fail
+        }
+      } catch (engagementError) {
+        console.error('Engagement creation error:', engagementError)
+        console.error('Error details:', {
+          message: engagementError.message,
+          stack: engagementError.stack,
+          code: engagementError.code,
+          detail: engagementError.detail
+        })
+        return res.status(500).json({ 
+          error: 'Failed to create engagement', 
+          details: engagementError.message,
+          sqlError: engagementError.detail || engagementError.code
+        })
       }
 
       // Log audit trail for creation
