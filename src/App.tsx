@@ -446,16 +446,18 @@ function NavigationMenu({ user }: { user: any }) {
       { id: 'engagements', label: '📝 My Engagements', roles: ['REP', 'MANAGER', 'ADMIN'] },
     ]
 
-    if (user.role === 'MANAGER' || user.name === 'Chris') {
+    const isChris = user.name && user.name.includes('Chris')
+
+    if (user.role === 'MANAGER' || isChris) {
       items.push({ id: 'team', label: '👥 All Reps', roles: ['MANAGER', 'ADMIN'] })
     }
 
-    if (user.name === 'Chris') {
+    if (isChris) {
       items.push({ id: 'admin', label: '⚙️ Administration', roles: ['ADMIN'] })
     }
 
     const filtered = items.filter(item => 
-      item.roles.includes(user.role) || (item.id === 'admin' && user.name === 'Chris')
+      item.roles.includes(user.role) || (item.id === 'admin' && isChris)
     )
 
     return [items, filtered]
@@ -469,7 +471,7 @@ function NavigationMenu({ user }: { user: any }) {
         <br />
         All items before filter: {items.map(item => `${item.label}(${item.roles.join(',')})`).join(' | ')}
         <br />
-        Filter check: role="{user?.role}" name="{user?.name}" isChris={user?.name === 'Chris'}
+        Filter check: role="{user?.role}" name="{user?.name}" isChris={user?.name && user?.name.includes('Chris')}
       </div>
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         {navItems.map(item => (
