@@ -457,7 +457,7 @@ function NavigationMenu({ user }: { user: any }) {
     return items.filter(item => 
       item.roles.includes(user.role) || (item.id === 'admin' && user.name === 'Chris')
     )
-  }, [user.role])
+  }, [user.role, user.name])
 
   return (
     <nav style={{ marginTop: '20px' }}>
