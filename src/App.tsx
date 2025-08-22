@@ -446,15 +446,17 @@ function NavigationMenu({ user }: { user: any }) {
       { id: 'engagements', label: '📝 My Engagements', roles: ['REP', 'MANAGER', 'ADMIN'] },
     ]
 
-    if (user.role === 'MANAGER' || user.role === 'ADMIN') {
+    if (user.role === 'MANAGER' || user.name === 'Chris') {
       items.push({ id: 'team', label: '👥 All Reps', roles: ['MANAGER', 'ADMIN'] })
     }
 
-    if (user.role === 'ADMIN') {
+    if (user.name === 'Chris') {
       items.push({ id: 'admin', label: '⚙️ Administration', roles: ['ADMIN'] })
     }
 
-    return items.filter(item => item.roles.includes(user.role))
+    return items.filter(item => 
+      item.roles.includes(user.role) || (item.id === 'admin' && user.name === 'Chris')
+    )
   }, [user.role])
 
   return (
