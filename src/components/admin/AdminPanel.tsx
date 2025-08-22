@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useUsers } from '../../hooks/useUsers'
 import UserRoleManagement from './UserRoleManagement'
+import ComprehensiveUserManagement from './UserManagement'
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('settings')
@@ -80,7 +81,7 @@ function SettingsPanel() {
 
       <div>
         {activeSettingsTab === 'userRoles' && <UserRolesSettings />}
-        {activeSettingsTab === 'userManagement' && <UserManagement />}
+        {activeSettingsTab === 'userManagement' && <UserManagementWrapper />}
         {activeSettingsTab === 'engagementManagement' && <EngagementManagementSettings />}
         {activeSettingsTab === 'engagementTypes' && <EngagementTypesSettings />}
         {activeSettingsTab === 'orgSettings' && <OrganizationSettings />}
@@ -93,7 +94,16 @@ function UserRolesSettings() {
   return <UserRoleManagement />
 }
 
-function UserManagement() {
+function UserManagementWrapper() {
+  // Remove the modal-style wrapper and just render the component directly
+  return (
+    <div style={{ padding: '0' }}>
+      <ComprehensiveUserManagement onClose={() => {}} />
+    </div>
+  )
+}
+
+function SimpleUserManagement() {
   const { data: users, isLoading, error } = useUsers()
 
   if (isLoading) {
