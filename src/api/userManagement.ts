@@ -17,6 +17,7 @@ import type {
   DEFAULT_PASSWORD_REQUIREMENTS
 } from '../types/userManagement'
 import { emailService } from '../services/emailService'
+import { auditService } from '../services/auditService'
 
 // Mock API service for User Management
 // In a real application, this would make HTTP calls to your backend
@@ -153,6 +154,16 @@ class UserManagementService {
 
       // Log activity
       await this.logUserActivity(newUser.id, 'profile_update', `User created by admin`)
+      
+      // Log audit trail
+      await auditService.logAction(
+        'current-user-id', // In real app, get from auth context
+        'Chris Administrator', // In real app, get from auth context
+        'create_user',
+        'user',
+        `Created new user: ${newUser.first_name} ${newUser.last_name} (${newUser.email})`,
+        newUser.id
+      )
 
       return newUser
     } catch (error) {
@@ -168,6 +179,7 @@ class UserManagementService {
         throw new Error('User not found')
       }
 
+      const originalUser = { ...mockUsersWithRoles[userIndex] }
       const updatedUser = {
         ...mockUsersWithRoles[userIndex],
         ...data,
@@ -179,6 +191,18 @@ class UserManagementService {
 
       // Log activity
       await this.logUserActivity(id, 'profile_update', 'Profile updated by admin')
+      
+      // Log audit trail with changes
+      const changes = auditService.generateChanges(originalUser, updatedUser)
+      await auditService.logAction(
+        'current-user-id', // In real app, get from auth context
+        'Chris Administrator', // In real app, get from auth context
+        'update_user',
+        'user',
+        `Updated user: ${updatedUser.first_name} ${updatedUser.last_name} (${updatedUser.email})`,
+        id,
+        changes
+      )
 
       return updatedUser
     } catch (error) {
@@ -194,6 +218,8 @@ class UserManagementService {
         throw new Error('User not found')
       }
 
+      const user = mockUsersWithRoles[userIndex]
+      
       // Instead of hard delete, mark as inactive
       mockUsersWithRoles[userIndex] = {
         ...mockUsersWithRoles[userIndex],
@@ -205,6 +231,16 @@ class UserManagementService {
 
       // Log activity
       await this.logUserActivity(id, 'profile_update', 'Account deactivated by admin')
+      
+      // Log audit trail
+      await auditService.logAction(
+        'current-user-id', // In real app, get from auth context
+        'Chris Administrator', // In real app, get from auth context
+        'delete_user',
+        'user',
+        `Deactivated user: ${user.first_name} ${user.last_name} (${user.email})`,
+        id
+      )
 
       return true
     } catch (error) {

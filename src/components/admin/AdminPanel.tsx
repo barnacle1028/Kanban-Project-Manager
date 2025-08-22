@@ -4,6 +4,8 @@ import UserRoleManagement from './UserRoleManagement'
 import ComprehensiveUserManagement from './UserManagement'
 import { userManagementService } from '../../api/userManagement'
 import { userRoleService } from '../../api/userRoles'
+import { auditService } from '../../services/auditService'
+import type { AuditLog, AuditLogFilter } from '../../services/auditService'
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('settings')
@@ -562,21 +564,339 @@ function NonModalUserManagement() {
 }
 
 function AuditLogs() {
+  const [logs, setLogs] = useState<AuditLog[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<AuditLogFilter>({})
+  const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    loadAuditLogs()
+  }, [filter, searchTerm])
+
+  const loadAuditLogs = async () => {
+    try {
+      setLoading(true)
+      let auditFilter = { ...filter }
+      
+      // Add search term to filter
+      if (searchTerm) {
+        auditFilter.action = searchTerm
+      }
+      
+      const auditLogs = await auditService.getAuditLogs(auditFilter)
+      setLogs(auditLogs)
+    } catch (error) {
+      console.error('Failed to load audit logs:', error)
+      setLogs([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFilterChange = (field: keyof AuditLogFilter, value: string) => {
+    setFilter(prev => ({
+      ...prev,
+      [field]: value || undefined
+    }))
+  }
+
+  const handleLast24Hours = async () => {
+    try {
+      setLoading(true)
+      const logs24h = await auditService.getLogsFromLast24Hours()
+      setLogs(logs24h)
+      setFilter({}) // Clear other filters
+      setSearchTerm('')
+    } catch (error) {
+      console.error('Failed to load last 24 hours logs:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDownloadCSV = () => {
+    const filename = `audit_logs_${filter.start_date ? filter.start_date.split('T')[0] : 'all'}_${new Date().toISOString().split('T')[0]}.csv`
+    auditService.downloadCSV(logs, filename)
+  }
+
+  const formatTimestamp = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString()
+  }
+
+  const getActionColor = (action: string) => {
+    if (action.includes('create')) return { background: '#d1fae5', color: '#065f46' }
+    if (action.includes('update')) return { background: '#fef3c7', color: '#92400e' }
+    if (action.includes('delete')) return { background: '#fee2e2', color: '#991b1b' }
+    if (action.includes('login')) return { background: '#e0f2fe', color: '#0369a1' }
+    return { background: '#f3f4f6', color: '#374151' }
+  }
+
+  const getResourceTypeColor = (resourceType: string) => {
+    switch (resourceType) {
+      case 'user': return { background: '#e0f2fe', color: '#0369a1' }
+      case 'user_role': return { background: '#f3e8ff', color: '#7c3aed' }
+      case 'system': return { background: '#fef3c7', color: '#92400e' }
+      default: return { background: '#f3f4f6', color: '#374151' }
+    }
+  }
+
+  if (loading) {
+    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading audit logs...</div>
+  }
+
   return (
     <div>
-      <h3>Audit Logs</h3>
-      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-        Track user actions and system events for security and compliance.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <h3 style={{ margin: '0 0 8px 0' }}>Audit Logs</h3>
+          <p style={{ color: '#6b7280', margin: 0 }}>
+            Track user actions and system events for security and compliance.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={handleLast24Hours}
+            style={{
+              padding: '8px 16px',
+              background: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Last 24 Hours
+          </button>
+          <button
+            onClick={handleDownloadCSV}
+            disabled={logs.length === 0}
+            style={{
+              padding: '8px 16px',
+              background: logs.length > 0 ? '#4f46e5' : '#9ca3af',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: logs.length > 0 ? 'pointer' : 'not-allowed',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Download CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
       <div style={{ 
-        background: '#f9fafb', 
+        background: 'white',
         border: '1px solid #e5e7eb',
         borderRadius: '8px',
-        padding: '20px',
-        textAlign: 'center',
+        padding: '16px',
+        marginBottom: '20px'
+      }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              Search Actions
+            </label>
+            <input
+              type="text"
+              placeholder="Search by action..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+          
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              Resource Type
+            </label>
+            <select
+              value={filter.resource_type || ''}
+              onChange={(e) => handleFilterChange('resource_type', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="">All Types</option>
+              <option value="user">User</option>
+              <option value="user_role">User Role</option>
+              <option value="system">System</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={filter.start_date?.split('T')[0] || ''}
+              onChange={(e) => handleFilterChange('start_date', e.target.value ? `${e.target.value}T00:00:00Z` : '')}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              End Date
+            </label>
+            <input
+              type="date"
+              value={filter.end_date?.split('T')[0] || ''}
+              onChange={(e) => handleFilterChange('end_date', e.target.value ? `${e.target.value}T23:59:59Z` : '')}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+        </div>
+
+        {(filter.start_date || filter.end_date || filter.resource_type || searchTerm) && (
+          <div style={{ marginTop: '12px' }}>
+            <button
+              onClick={() => {
+                setFilter({})
+                setSearchTerm('')
+              }}
+              style={{
+                padding: '6px 12px',
+                background: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Results Summary */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '16px',
+        fontSize: '14px',
         color: '#6b7280'
       }}>
-        Audit log viewer would be implemented here with filtering, search, and export capabilities.
+        <span>Showing {logs.length} audit log{logs.length !== 1 ? 's' : ''}</span>
+        {logs.length > 0 && (
+          <span>
+            Latest: {formatTimestamp(logs[0].timestamp)}
+          </span>
+        )}
+      </div>
+
+      {/* Audit Logs Table */}
+      <div style={{
+        background: 'white',
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead style={{ background: '#f9fafb' }}>
+            <tr>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Timestamp</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>User</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Action</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Resource</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Details</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Changes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.length > 0 ? logs.map(log => (
+              <tr key={log.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <td style={{ padding: '12px', fontSize: '13px', fontFamily: 'monospace' }}>
+                  {formatTimestamp(log.timestamp)}
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  {log.user_name}
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    ...getActionColor(log.action)
+                  }}>
+                    {log.action}
+                  </span>
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    ...getResourceTypeColor(log.resource_type)
+                  }}>
+                    {log.resource_type}
+                  </span>
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px', maxWidth: '200px' }}>
+                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {log.details}
+                  </div>
+                </td>
+                <td style={{ padding: '12px', fontSize: '13px', maxWidth: '200px' }}>
+                  {log.changes && log.changes.length > 0 ? (
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      {log.changes.slice(0, 2).map((change, idx) => (
+                        <div key={idx} style={{ marginBottom: '2px' }}>
+                          <strong>{change.field}:</strong> {JSON.stringify(change.old_value)} → {JSON.stringify(change.new_value)}
+                        </div>
+                      ))}
+                      {log.changes.length > 2 && (
+                        <div style={{ fontStyle: 'italic' }}>
+                          +{log.changes.length - 2} more changes
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span style={{ color: '#9ca3af', fontSize: '12px' }}>No changes</span>
+                  )}
+                </td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                  {Object.keys(filter).length > 0 || searchTerm ? 'No audit logs match your criteria' : 'No audit logs found'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

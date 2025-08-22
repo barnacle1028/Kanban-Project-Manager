@@ -7,6 +7,7 @@ import type {
   AssignUserRoleRequest,
   UserWithRole
 } from '../types/userRoles'
+import { auditService } from '../services/auditService'
 
 // Mock API service for User Roles
 // In a real application, this would make HTTP calls to your backend
@@ -52,6 +53,17 @@ class UserRoleService {
       }
       
       mockUserRoles.push(newRole)
+      
+      // Log audit trail
+      await auditService.logAction(
+        'current-user-id', // In real app, get from auth context
+        'Chris Administrator', // In real app, get from auth context
+        'create_role',
+        'user_role',
+        `Created new user role: ${newRole.name} (${newRole.role_type})`,
+        newRole.id
+      )
+      
       return newRole
     } catch (error) {
       console.error('Error creating user role:', error)
@@ -67,6 +79,7 @@ class UserRoleService {
         throw new Error('User role not found')
       }
 
+      const originalRole = { ...mockUserRoles[roleIndex] }
       const updatedRole = {
         ...mockUserRoles[roleIndex],
         ...data,
@@ -74,6 +87,19 @@ class UserRoleService {
       }
 
       mockUserRoles[roleIndex] = updatedRole
+      
+      // Log audit trail with changes
+      const changes = auditService.generateChanges(originalRole, updatedRole)
+      await auditService.logAction(
+        'current-user-id', // In real app, get from auth context
+        'Chris Administrator', // In real app, get from auth context
+        'update_role',
+        'user_role',
+        `Updated user role: ${updatedRole.name} (${updatedRole.role_type})`,
+        id,
+        changes
+      )
+      
       return updatedRole
     } catch (error) {
       console.error('Error updating user role:', error)
@@ -98,7 +124,19 @@ class UserRoleService {
         throw new Error('Cannot delete user role that is currently assigned to users')
       }
 
+      const role = mockUserRoles[roleIndex]
       mockUserRoles.splice(roleIndex, 1)
+      
+      // Log audit trail
+      await auditService.logAction(
+        'current-user-id', // In real app, get from auth context
+        'Chris Administrator', // In real app, get from auth context
+        'delete_role',
+        'user_role',
+        `Deleted user role: ${role.name} (${role.role_type})`,
+        id
+      )
+      
       return true
     } catch (error) {
       console.error('Error deleting user role:', error)
@@ -150,6 +188,17 @@ class UserRoleService {
         new_role_id: data.user_role_id,
         reason: data.reason || 'Role assignment'
       })
+      
+      // Log audit trail
+      const role = mockUserRoles.find(r => r.id === data.user_role_id)
+      await auditService.logAction(
+        'current-user-id', // In real app, get from auth context
+        'Chris Administrator', // In real app, get from auth context
+        'assign_role',
+        'user_role',
+        `Assigned role ${role?.name || 'Unknown'} to user`,
+        data.user_role_id
+      )
 
       return newAssignment
     } catch (error) {
