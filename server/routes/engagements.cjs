@@ -13,6 +13,44 @@ const router = express.Router()
 // All routes require authentication
 router.use(authenticateToken)
 
+// Debug endpoint to check database structure
+router.get('/debug-schema', async (req, res) => {
+  try {
+    // Check engagement table structure
+    const engagementSchema = await query(`
+      SELECT column_name, data_type, is_nullable, column_default 
+      FROM information_schema.columns 
+      WHERE table_name = 'engagement' 
+      ORDER BY ordinal_position
+    `)
+    
+    // Check if users table exists
+    const usersCheck = await query(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      ORDER BY ordinal_position
+    `)
+    
+    // Check if account table exists
+    const accountCheck = await query(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'account' 
+      ORDER BY ordinal_position
+    `)
+    
+    res.json({
+      engagement_columns: engagementSchema.rows,
+      users_columns: usersCheck.rows,
+      account_columns: accountCheck.rows
+    })
+  } catch (error) {
+    console.error('Schema debug error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Get available reps from user management system
 router.get('/reps', async (req, res) => {
   try {
