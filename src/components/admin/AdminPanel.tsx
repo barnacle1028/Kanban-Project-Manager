@@ -224,6 +224,7 @@ function SimpleUserManagement() {
 function EngagementManagementSettings() {
   const [engagements, setEngagements] = useState<Engagement[]>([])
   const [availableReps, setAvailableReps] = useState<string[]>([])
+  const [activeUsers, setActiveUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState<EngagementFilter>({})
@@ -234,6 +235,19 @@ function EngagementManagementSettings() {
   useEffect(() => {
     loadData()
   }, [searchTerm, filter])
+
+  // Load active users on component mount
+  useEffect(() => {
+    const loadActiveUsers = async () => {
+      try {
+        const response = await userManagementService.getAllUsers({ is_active: true })
+        setActiveUsers(response.users)
+      } catch (error) {
+        console.error('Error loading active users:', error)
+      }
+    }
+    loadActiveUsers()
+  }, [])
 
   const loadData = async () => {
     try {
@@ -412,10 +426,10 @@ function EngagementManagementSettings() {
             fontSize: '14px'
           }}
         >
-          <option value="">All Reps</option>
-          {availableReps.map(rep => (
-            <option key={rep} value={rep}>
-              {rep}
+          <option value="">All Assigned Reps</option>
+          {activeUsers.map(user => (
+            <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
+              {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
             </option>
           ))}
         </select>
@@ -1591,6 +1605,20 @@ function CreateEngagementModal({ availableReps, onSave, onClose }: {
   onSave: (data: CreateEngagementRequest) => void
   onClose: () => void
 }) {
+  const [activeUsers, setActiveUsers] = useState<any[]>([])
+
+  // Load active users on component mount
+  useEffect(() => {
+    const loadActiveUsers = async () => {
+      try {
+        const response = await userManagementService.getAllUsers({ is_active: true })
+        setActiveUsers(response.users)
+      } catch (error) {
+        console.error('Error loading active users:', error)
+      }
+    }
+    loadActiveUsers()
+  }, [])
   const [formData, setFormData] = useState<CreateEngagementRequest>({
     accountName: '',
     name: '',
@@ -1833,10 +1861,10 @@ function CreateEngagementModal({ availableReps, onSave, onClose }: {
                     fontSize: '14px'
                   }}
                 >
-                  <option value="">Select Rep</option>
-                  {availableReps.map(rep => (
-                    <option key={rep} value={rep}>
-                      {rep}
+                  <option value="">Select Assigned Rep</option>
+                  {activeUsers.map(user => (
+                    <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
+                      {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
                     </option>
                   ))}
                 </select>
@@ -2235,6 +2263,20 @@ function EditEngagementModal({ engagement, availableReps, onSave, onClose }: {
   onSave: (id: string, data: UpdateEngagementRequest) => void
   onClose: () => void
 }) {
+  const [activeUsers, setActiveUsers] = useState<any[]>([])
+
+  // Load active users on component mount
+  useEffect(() => {
+    const loadActiveUsers = async () => {
+      try {
+        const response = await userManagementService.getAllUsers({ is_active: true })
+        setActiveUsers(response.users)
+      } catch (error) {
+        console.error('Error loading active users:', error)
+      }
+    }
+    loadActiveUsers()
+  }, [])
   const [formData, setFormData] = useState<UpdateEngagementRequest>({
     accountName: engagement.accountName,
     name: engagement.name,
@@ -2476,10 +2518,10 @@ function EditEngagementModal({ engagement, availableReps, onSave, onClose }: {
                     fontSize: '14px'
                   }}
                 >
-                  <option value="">Select Rep</option>
-                  {availableReps.map(rep => (
-                    <option key={rep} value={rep}>
-                      {rep}
+                  <option value="">Select Assigned Rep</option>
+                  {activeUsers.map(user => (
+                    <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
+                      {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
                     </option>
                   ))}
                 </select>
