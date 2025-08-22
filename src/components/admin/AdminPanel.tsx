@@ -6,6 +6,8 @@ import { userManagementService } from '../../api/userManagement'
 import { userRoleService } from '../../api/userRoles'
 import { auditService } from '../../services/auditService'
 import type { AuditLog, AuditLogFilter } from '../../services/auditService'
+import { engagementManagementService } from '../../services/engagementManagementService'
+import type { EngagementWithMilestones, Account, User, Engagement, CreateEngagementRequest, UpdateEngagementRequest, EngagementFilter } from '../../services/engagementManagementService'
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('settings')
@@ -219,22 +221,334 @@ function SimpleUserManagement() {
 }
 
 function EngagementManagementSettings() {
+  const [engagements, setEngagements] = useState<EngagementWithMilestones[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filter, setFilter] = useState<EngagementFilter>({})
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedEngagement, setSelectedEngagement] = useState<EngagementWithMilestones | null>(null)
+
+  useEffect(() => {
+    loadData()
+  }, [searchTerm, filter])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const [engagementsResponse, accountsResponse, usersResponse] = await Promise.all([
+        engagementManagementService.getAllEngagements({ 
+          ...filter, 
+          search: searchTerm 
+        }, { 
+          field: 'created_at', 
+          direction: 'desc' 
+        }, 1, 50),
+        engagementManagementService.getAccounts(),
+        engagementManagementService.getUsers()
+      ])
+      setEngagements(engagementsResponse.engagements || [])
+      setAccounts(accountsResponse || [])
+      setUsers(usersResponse || [])
+    } catch (error) {
+      console.error('Failed to load engagement data:', error)
+      setEngagements([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateEngagement = async (data: CreateEngagementRequest) => {
+    try {
+      await engagementManagementService.createEngagement(data)
+      setShowCreateModal(false)
+      loadData()
+    } catch (error) {
+      console.error('Failed to create engagement:', error)
+      alert('Failed to create engagement: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
+  }
+
+  const handleEditEngagement = (engagement: EngagementWithMilestones) => {
+    setSelectedEngagement(engagement)
+    setShowEditModal(true)
+  }
+
+  const handleUpdateEngagement = async (id: string, data: UpdateEngagementRequest) => {
+    try {
+      await engagementManagementService.updateEngagement(id, data)
+      setShowEditModal(false)
+      setSelectedEngagement(null)
+      loadData()
+    } catch (error) {
+      console.error('Failed to update engagement:', error)
+      alert('Failed to update engagement: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
+  }
+
+  const handleDeleteEngagement = async (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete engagement "${name}"?`)) {
+      try {
+        await engagementManagementService.deleteEngagement(id)
+        loadData()
+      } catch (error) {
+        console.error('Failed to delete engagement:', error)
+        alert('Failed to delete engagement: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      }
+    }
+  }
+
+  const getStatusColor = (status: Engagement['status']) => {
+    switch (status) {
+      case 'NEW': return { background: '#f3f4f6', color: '#374151' }
+      case 'KICK_OFF': return { background: '#ddd6fe', color: '#5b21b6' }
+      case 'IN_PROGRESS': return { background: '#bfdbfe', color: '#1e40af' }
+      case 'LAUNCHED': return { background: '#d1fae5', color: '#065f46' }
+      case 'STALLED': return { background: '#fef3c7', color: '#92400e' }
+      case 'ON_HOLD': return { background: '#fed7d7', color: '#c53030' }
+      case 'CLAWED_BACK': return { background: '#fee2e2', color: '#991b1b' }
+      case 'COMPLETED': return { background: '#d1fae5', color: '#065f46' }
+      default: return { background: '#f3f4f6', color: '#374151' }
+    }
+  }
+
+  const getHealthColor = (health: Engagement['health']) => {
+    switch (health) {
+      case 'GREEN': return { background: '#d1fae5', color: '#065f46' }
+      case 'YELLOW': return { background: '#fef3c7', color: '#92400e' }
+      case 'RED': return { background: '#fee2e2', color: '#991b1b' }
+      default: return { background: '#f3f4f6', color: '#374151' }
+    }
+  }
+
+  if (loading) {
+    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading engagements...</div>
+  }
+
   return (
     <div>
-      <h4>Engagement Management</h4>
-      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-        Configure engagement workflows, statuses, and business rules.
-      </p>
-      <div style={{ 
-        background: '#f9fafb', 
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>Engagement Management</h4>
+          <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+            Manage all customer engagements and their lifecycle
+          </p>
+        </div>
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          style={{
+            background: '#4f46e5',
+            color: 'white',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          + Add New Engagement
+        </button>
+      </div>
+
+      {/* Search and Filter */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <input
+          type="text"
+          placeholder="Search engagements..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            flex: 1,
+            minWidth: '200px',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '14px'
+          }}
+        />
+        <select
+          value={filter.status || ''}
+          onChange={(e) => setFilter({ ...filter, status: e.target.value as Engagement['status'] || undefined })}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '14px'
+          }}
+        >
+          <option value="">All Status</option>
+          <option value="NEW">New</option>
+          <option value="KICK_OFF">Kick Off</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="LAUNCHED">Launched</option>
+          <option value="STALLED">Stalled</option>
+          <option value="ON_HOLD">On Hold</option>
+          <option value="CLAWED_BACK">Clawed Back</option>
+          <option value="COMPLETED">Completed</option>
+        </select>
+        <select
+          value={filter.health || ''}
+          onChange={(e) => setFilter({ ...filter, health: e.target.value as Engagement['health'] || undefined })}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '14px'
+          }}
+        >
+          <option value="">All Health</option>
+          <option value="GREEN">Green</option>
+          <option value="YELLOW">Yellow</option>
+          <option value="RED">Red</option>
+        </select>
+        <select
+          value={filter.owner_user_id || ''}
+          onChange={(e) => setFilter({ ...filter, owner_user_id: e.target.value || undefined })}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '14px'
+          }}
+        >
+          <option value="">All Owners</option>
+          {users.map(user => (
+            <option key={user.id} value={user.id}>
+              {user.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Engagements Table */}
+      <div style={{
+        background: 'white',
         border: '1px solid #e5e7eb',
         borderRadius: '8px',
-        padding: '20px',
-        textAlign: 'center',
-        color: '#6b7280'
+        overflow: 'hidden'
       }}>
-        Engagement management configuration would be implemented here.
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead style={{ background: '#f9fafb' }}>
+            <tr>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Name</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Account</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Owner</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Status</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Health</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Priority</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Target Launch</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {engagements.length > 0 ? engagements.map(engagement => (
+              <tr key={engagement.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <td style={{ padding: '12px', fontSize: '14px', fontWeight: '500' }}>
+                  {engagement.name}
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  {engagement.account.name}
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  {engagement.owner.name}
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    ...getStatusColor(engagement.status)
+                  }}>
+                    {engagement.status.replace('_', ' ')}
+                  </span>
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    ...getHealthColor(engagement.health)
+                  }}>
+                    {engagement.health}
+                  </span>
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  {engagement.priority}
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  {engagement.target_launch_date ? new Date(engagement.target_launch_date).toLocaleDateString() : '-'}
+                </td>
+                <td style={{ padding: '12px', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={() => handleEditEngagement(engagement)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        background: 'white',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteEngagement(engagement.id, engagement.name)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        border: '1px solid #dc2626',
+                        borderRadius: '4px',
+                        background: 'white',
+                        color: '#dc2626',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                  {searchTerm || Object.keys(filter).length > 0 ? 'No engagements match your criteria' : 'No engagements found'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
+
+      {/* Create Engagement Modal */}
+      {showCreateModal && (
+        <CreateEngagementModal 
+          accounts={accounts}
+          users={users}
+          onSave={handleCreateEngagement}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {/* Edit Engagement Modal */}
+      {showEditModal && selectedEngagement && (
+        <EditEngagementModal 
+          engagement={selectedEngagement}
+          accounts={accounts}
+          users={users}
+          onSave={handleUpdateEngagement}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedEngagement(null)
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -1240,6 +1554,645 @@ function EditUserModal({ user, userRoles, onSave, onClose }) {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                background: 'white',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: '8px 16px',
+                background: '#4f46e5',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function CreateEngagementModal({ accounts, users, onSave, onClose }: {
+  accounts: Account[]
+  users: User[]
+  onSave: (data: CreateEngagementRequest) => void
+  onClose: () => void
+}) {
+  const [formData, setFormData] = useState<CreateEngagementRequest>({
+    account_id: '',
+    owner_user_id: '',
+    name: '',
+    status: 'NEW',
+    health: 'GREEN',
+    priority: 1,
+    start_date: '',
+    target_launch_date: ''
+  })
+
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Basic validation
+    const newErrors: Record<string, string> = {}
+    if (!formData.name.trim()) newErrors.name = 'Engagement name is required'
+    if (!formData.account_id) newErrors.account_id = 'Account is required'
+    if (!formData.owner_user_id) newErrors.owner_user_id = 'Owner is required'
+    if (formData.priority < 1) newErrors.priority = 'Priority must be at least 1'
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    // Clean up the data before sending
+    const submitData = { ...formData }
+    if (!submitData.start_date) delete submitData.start_date
+    if (!submitData.target_launch_date) delete submitData.target_launch_date
+    
+    onSave(submitData)
+  }
+
+  const handleChange = (field: keyof CreateEngagementRequest, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '90vh',
+        overflow: 'auto'
+      }}>
+        <div style={{
+          padding: '20px',
+          borderBottom: '1px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            Create New Engagement
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#6b7280'
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              Engagement Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: `1px solid ${errors.name ? '#dc2626' : '#d1d5db'}`,
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+              placeholder="Enter engagement name"
+            />
+            {errors.name && (
+              <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.name}</span>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Account *
+              </label>
+              <select
+                value={formData.account_id}
+                onChange={(e) => handleChange('account_id', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: `1px solid ${errors.account_id ? '#dc2626' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">Select Account</option>
+                {accounts.map(account => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+              {errors.account_id && (
+                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.account_id}</span>
+              )}
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Owner *
+              </label>
+              <select
+                value={formData.owner_user_id}
+                onChange={(e) => handleChange('owner_user_id', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: `1px solid ${errors.owner_user_id ? '#dc2626' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">Select Owner</option>
+                {users.filter(user => user.role === 'REP' || user.role === 'MANAGER').map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.role})
+                  </option>
+                ))}
+              </select>
+              {errors.owner_user_id && (
+                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.owner_user_id}</span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => handleChange('status', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="NEW">New</option>
+                <option value="KICK_OFF">Kick Off</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="LAUNCHED">Launched</option>
+                <option value="STALLED">Stalled</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="CLAWED_BACK">Clawed Back</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Health
+              </label>
+              <select
+                value={formData.health}
+                onChange={(e) => handleChange('health', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="GREEN">Green</option>
+                <option value="YELLOW">Yellow</option>
+                <option value="RED">Red</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Priority *
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={formData.priority}
+                onChange={(e) => handleChange('priority', parseInt(e.target.value) || 1)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: `1px solid ${errors.priority ? '#dc2626' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+              {errors.priority && (
+                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.priority}</span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={formData.start_date || ''}
+                onChange={(e) => handleChange('start_date', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Target Launch Date
+              </label>
+              <input
+                type="date"
+                value={formData.target_launch_date || ''}
+                onChange={(e) => handleChange('target_launch_date', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                background: 'white',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: '8px 16px',
+                background: '#4f46e5',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              Create Engagement
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function EditEngagementModal({ engagement, accounts, users, onSave, onClose }: {
+  engagement: EngagementWithMilestones
+  accounts: Account[]
+  users: User[]
+  onSave: (id: string, data: UpdateEngagementRequest) => void
+  onClose: () => void
+}) {
+  const [formData, setFormData] = useState<UpdateEngagementRequest>({
+    account_id: engagement.account_id,
+    owner_user_id: engagement.owner_user_id,
+    name: engagement.name,
+    status: engagement.status,
+    health: engagement.health,
+    priority: engagement.priority,
+    start_date: engagement.start_date || '',
+    target_launch_date: engagement.target_launch_date || ''
+  })
+
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Basic validation
+    const newErrors: Record<string, string> = {}
+    if (!formData.name?.trim()) newErrors.name = 'Engagement name is required'
+    if (!formData.account_id) newErrors.account_id = 'Account is required'
+    if (!formData.owner_user_id) newErrors.owner_user_id = 'Owner is required'
+    if (formData.priority !== undefined && formData.priority < 1) newErrors.priority = 'Priority must be at least 1'
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    // Clean up the data before sending
+    const submitData = { ...formData }
+    if (!submitData.start_date) delete submitData.start_date
+    if (!submitData.target_launch_date) delete submitData.target_launch_date
+    
+    onSave(engagement.id, submitData)
+  }
+
+  const handleChange = (field: keyof UpdateEngagementRequest, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '90vh',
+        overflow: 'auto'
+      }}>
+        <div style={{
+          padding: '20px',
+          borderBottom: '1px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            Edit Engagement: {engagement.name}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#6b7280'
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              Engagement Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name || ''}
+              onChange={(e) => handleChange('name', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: `1px solid ${errors.name ? '#dc2626' : '#d1d5db'}`,
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+              placeholder="Enter engagement name"
+            />
+            {errors.name && (
+              <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.name}</span>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Account *
+              </label>
+              <select
+                value={formData.account_id || ''}
+                onChange={(e) => handleChange('account_id', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: `1px solid ${errors.account_id ? '#dc2626' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">Select Account</option>
+                {accounts.map(account => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+              {errors.account_id && (
+                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.account_id}</span>
+              )}
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Owner *
+              </label>
+              <select
+                value={formData.owner_user_id || ''}
+                onChange={(e) => handleChange('owner_user_id', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: `1px solid ${errors.owner_user_id ? '#dc2626' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">Select Owner</option>
+                {users.filter(user => user.role === 'REP' || user.role === 'MANAGER').map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.role})
+                  </option>
+                ))}
+              </select>
+              {errors.owner_user_id && (
+                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.owner_user_id}</span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Status
+              </label>
+              <select
+                value={formData.status || ''}
+                onChange={(e) => handleChange('status', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="NEW">New</option>
+                <option value="KICK_OFF">Kick Off</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="LAUNCHED">Launched</option>
+                <option value="STALLED">Stalled</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="CLAWED_BACK">Clawed Back</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Health
+              </label>
+              <select
+                value={formData.health || ''}
+                onChange={(e) => handleChange('health', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="GREEN">Green</option>
+                <option value="YELLOW">Yellow</option>
+                <option value="RED">Red</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Priority *
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={formData.priority || 1}
+                onChange={(e) => handleChange('priority', parseInt(e.target.value) || 1)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: `1px solid ${errors.priority ? '#dc2626' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+              {errors.priority && (
+                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.priority}</span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={formData.start_date || ''}
+                onChange={(e) => handleChange('start_date', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                Target Launch Date
+              </label>
+              <input
+                type="date"
+                value={formData.target_launch_date || ''}
+                onChange={(e) => handleChange('target_launch_date', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
             </div>
           </div>
 
