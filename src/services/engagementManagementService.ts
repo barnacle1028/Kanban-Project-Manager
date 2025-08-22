@@ -1,35 +1,60 @@
-import type { Engagement, EngagementWithMilestones, Account, User } from '../api/types'
+import type { Engagement, ProjectStatus, Speed, CRM, SalesType, AddOn } from '../types'
 import { auditService } from './auditService'
 
+// Re-export Engagement type for other components
+export type { Engagement }
+
 export interface CreateEngagementRequest {
-  account_id: string
-  owner_user_id: string
+  accountName: string
   name: string
-  status: Engagement['status']
-  health: Engagement['health']
-  priority: number
-  start_date?: string
-  target_launch_date?: string
+  status: ProjectStatus
+  health: 'GREEN' | 'YELLOW' | 'RED'
+  assignedRep?: string
+  startDate?: string
+  closeDate?: string
+  salesType?: SalesType
+  speed?: Speed
+  crm?: CRM
+  avazaLink?: string
+  projectFolderLink?: string
+  clientWebsiteLink?: string
+  soldBy?: string
+  seatCount?: number
+  hoursAlloted?: number
+  primaryContactName?: string
+  primaryContactEmail?: string
+  linkedinLink?: string
+  addOnsPurchased?: AddOn[]
 }
 
 export interface UpdateEngagementRequest {
-  account_id?: string
-  owner_user_id?: string
+  accountName?: string
   name?: string
-  status?: Engagement['status']
-  health?: Engagement['health']
-  priority?: number
-  start_date?: string
-  target_launch_date?: string
+  status?: ProjectStatus
+  health?: 'GREEN' | 'YELLOW' | 'RED'
+  assignedRep?: string
+  startDate?: string
+  closeDate?: string
+  salesType?: SalesType
+  speed?: Speed
+  crm?: CRM
+  avazaLink?: string
+  projectFolderLink?: string
+  clientWebsiteLink?: string
+  soldBy?: string
+  seatCount?: number
+  hoursAlloted?: number
+  primaryContactName?: string
+  primaryContactEmail?: string
+  linkedinLink?: string
+  addOnsPurchased?: AddOn[]
 }
 
 export interface EngagementFilter {
-  status?: Engagement['status']
-  health?: Engagement['health']
-  owner_user_id?: string
-  account_id?: string
-  priority_min?: number
-  priority_max?: number
+  status?: ProjectStatus
+  health?: 'GREEN' | 'YELLOW' | 'RED'
+  assignedRep?: string
+  accountName?: string
   search?: string
 }
 
@@ -39,7 +64,7 @@ export interface EngagementListSort {
 }
 
 export interface PaginatedEngagementResponse {
-  engagements: EngagementWithMilestones[]
+  engagements: Engagement[]
   total: number
   page: number
   limit: number
@@ -48,10 +73,8 @@ export interface PaginatedEngagementResponse {
 
 class EngagementManagementService {
   private storageKey = 'kanban_engagements_data'
-  private accountsStorageKey = 'kanban_accounts_data'
-  private usersStorageKey = 'kanban_users_data'
 
-  private getStoredEngagements(): EngagementWithMilestones[] {
+  private getStoredEngagements(): Engagement[] {
     try {
       const stored = localStorage.getItem(this.storageKey)
       return stored ? JSON.parse(stored) : this.getDefaultEngagements()
@@ -61,31 +84,11 @@ class EngagementManagementService {
     }
   }
 
-  private saveEngagementsToStorage(engagements: EngagementWithMilestones[]) {
+  private saveEngagementsToStorage(engagements: Engagement[]) {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(engagements))
     } catch (error) {
       console.error('Error saving engagements to storage:', error)
-    }
-  }
-
-  private getStoredAccounts(): Account[] {
-    try {
-      const stored = localStorage.getItem(this.accountsStorageKey)
-      return stored ? JSON.parse(stored) : this.getDefaultAccounts()
-    } catch (error) {
-      console.error('Error loading stored accounts:', error)
-      return this.getDefaultAccounts()
-    }
-  }
-
-  private getStoredUsers(): User[] {
-    try {
-      const stored = localStorage.getItem(this.usersStorageKey)
-      return stored ? JSON.parse(stored) : this.getDefaultUsers()
-    } catch (error) {
-      console.error('Error loading stored users:', error)
-      return this.getDefaultUsers()
     }
   }
 
@@ -106,24 +109,18 @@ class EngagementManagementService {
         if (filter.health) {
           engagements = engagements.filter(e => e.health === filter.health)
         }
-        if (filter.owner_user_id) {
-          engagements = engagements.filter(e => e.owner_user_id === filter.owner_user_id)
+        if (filter.assignedRep) {
+          engagements = engagements.filter(e => e.assignedRep === filter.assignedRep)
         }
-        if (filter.account_id) {
-          engagements = engagements.filter(e => e.account_id === filter.account_id)
-        }
-        if (filter.priority_min !== undefined) {
-          engagements = engagements.filter(e => e.priority >= filter.priority_min!)
-        }
-        if (filter.priority_max !== undefined) {
-          engagements = engagements.filter(e => e.priority <= filter.priority_max!)
+        if (filter.accountName) {
+          engagements = engagements.filter(e => e.accountName === filter.accountName)
         }
         if (filter.search) {
           const searchLower = filter.search.toLowerCase()
           engagements = engagements.filter(e => 
             e.name.toLowerCase().includes(searchLower) ||
-            e.account.name.toLowerCase().includes(searchLower) ||
-            e.owner.name.toLowerCase().includes(searchLower)
+            e.accountName.toLowerCase().includes(searchLower) ||
+            (e.assignedRep && e.assignedRep.toLowerCase().includes(searchLower))
           )
         }
       }
@@ -160,7 +157,7 @@ class EngagementManagementService {
     }
   }
 
-  async getEngagementById(id: string): Promise<EngagementWithMilestones | null> {
+  async getEngagementById(id: string): Promise<Engagement | null> {
     try {
       const engagements = this.getStoredEngagements()
       return engagements.find(engagement => engagement.id === id) || null
@@ -170,36 +167,33 @@ class EngagementManagementService {
     }
   }
 
-  async createEngagement(data: CreateEngagementRequest): Promise<EngagementWithMilestones> {
+  async createEngagement(data: CreateEngagementRequest): Promise<Engagement> {
     try {
       const engagements = this.getStoredEngagements()
-      const accounts = this.getStoredAccounts()
-      const users = this.getStoredUsers()
 
-      // Find related account and user
-      const account = accounts.find(a => a.id === data.account_id)
-      const owner = users.find(u => u.id === data.owner_user_id)
-
-      if (!account) throw new Error('Account not found')
-      if (!owner) throw new Error('Owner user not found')
-
-      const newEngagement: EngagementWithMilestones = {
+      const newEngagement: Engagement = {
         id: `engagement-${Date.now()}`,
-        account_id: data.account_id,
-        owner_user_id: data.owner_user_id,
+        accountName: data.accountName,
         name: data.name,
         status: data.status,
         health: data.health,
-        priority: data.priority,
-        start_date: data.start_date,
-        target_launch_date: data.target_launch_date,
-        status_entered_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        milestones: [], // Milestones would be created separately
-        account,
-        owner,
-        percent_complete: 0
+        assignedRep: data.assignedRep,
+        startDate: data.startDate,
+        closeDate: data.closeDate,
+        salesType: data.salesType,
+        speed: data.speed,
+        crm: data.crm,
+        avazaLink: data.avazaLink,
+        projectFolderLink: data.projectFolderLink,
+        clientWebsiteLink: data.clientWebsiteLink,
+        soldBy: data.soldBy,
+        seatCount: data.seatCount,
+        hoursAlloted: data.hoursAlloted,
+        primaryContactName: data.primaryContactName,
+        primaryContactEmail: data.primaryContactEmail,
+        linkedinLink: data.linkedinLink,
+        addOnsPurchased: data.addOnsPurchased || [],
+        milestones: [] // Milestones would be created separately
       }
 
       engagements.push(newEngagement)
@@ -211,7 +205,7 @@ class EngagementManagementService {
         'Chris Administrator', // In real app, get from auth context
         'create_engagement',
         'system',
-        `Created new engagement: ${newEngagement.name} for account ${account.name}`,
+        `Created new engagement: ${newEngagement.name} for account ${data.accountName}`,
         newEngagement.id
       )
 
@@ -222,11 +216,9 @@ class EngagementManagementService {
     }
   }
 
-  async updateEngagement(id: string, data: UpdateEngagementRequest): Promise<EngagementWithMilestones> {
+  async updateEngagement(id: string, data: UpdateEngagementRequest): Promise<Engagement> {
     try {
       const engagements = this.getStoredEngagements()
-      const accounts = this.getStoredAccounts()
-      const users = this.getStoredUsers()
 
       const engagementIndex = engagements.findIndex(engagement => engagement.id === id)
       if (engagementIndex === -1) {
@@ -236,31 +228,14 @@ class EngagementManagementService {
       const originalEngagement = { ...engagements[engagementIndex] }
       const updatedEngagement = {
         ...engagements[engagementIndex],
-        ...data,
-        updated_at: new Date().toISOString()
-      }
-
-      // Update status_entered_at if status changed
-      if (data.status && data.status !== originalEngagement.status) {
-        updatedEngagement.status_entered_at = new Date().toISOString()
-      }
-
-      // Update related data if account or owner changed
-      if (data.account_id && data.account_id !== originalEngagement.account_id) {
-        const newAccount = accounts.find(a => a.id === data.account_id)
-        if (newAccount) updatedEngagement.account = newAccount
-      }
-
-      if (data.owner_user_id && data.owner_user_id !== originalEngagement.owner_user_id) {
-        const newOwner = users.find(u => u.id === data.owner_user_id)
-        if (newOwner) updatedEngagement.owner = newOwner
+        ...data
       }
 
       engagements[engagementIndex] = updatedEngagement
       this.saveEngagementsToStorage(engagements)
 
       // Log audit trail with changes
-      const changes = auditService.generateChanges(originalEngagement, updatedEngagement, ['updated_at', 'milestones', 'account', 'owner', 'percent_complete'])
+      const changes = auditService.generateChanges(originalEngagement, updatedEngagement, ['milestones'])
       await auditService.logAction(
         'current-user-id', // In real app, get from auth context
         'Chris Administrator', // In real app, get from auth context
@@ -297,7 +272,7 @@ class EngagementManagementService {
         'Chris Administrator', // In real app, get from auth context
         'delete_engagement',
         'system',
-        `Deleted engagement: ${engagement.name} for account ${engagement.account.name}`,
+        `Deleted engagement: ${engagement.name} for account ${engagement.accountName}`,
         id
       )
 
@@ -308,154 +283,85 @@ class EngagementManagementService {
     }
   }
 
-  async getAccounts(): Promise<Account[]> {
-    return this.getStoredAccounts()
-  }
-
-  async getUsers(): Promise<User[]> {
-    return this.getStoredUsers()
+  async getAvailableReps(): Promise<string[]> {
+    // In a real app, this would come from a database
+    return [
+      'Dakota',
+      'Chris',
+      'Amanda',
+      'Rolando',
+      'Lisa',
+      'Steph',
+      'Josh'
+    ]
   }
 
   // Default data for development/testing
-  private getDefaultEngagements(): EngagementWithMilestones[] {
-    const accounts = this.getDefaultAccounts()
-    const users = this.getDefaultUsers()
-
+  private getDefaultEngagements(): Engagement[] {
     return [
       {
         id: 'engagement-001',
-        account_id: 'account-001',
-        owner_user_id: 'user-rep-001',
+        accountName: 'TechCorp Solutions',
         name: 'Digital Transformation Initiative',
         status: 'IN_PROGRESS',
         health: 'GREEN',
-        priority: 1,
-        start_date: '2024-01-15',
-        target_launch_date: '2024-06-30',
-        status_entered_at: '2024-01-15T10:00:00Z',
-        created_at: '2024-01-15T09:00:00Z',
-        updated_at: '2024-03-01T14:30:00Z',
-        milestones: [],
-        account: accounts[0],
-        owner: users.find(u => u.id === 'user-rep-001')!,
-        percent_complete: 45
+        assignedRep: 'Rolando',
+        startDate: '2024-01-15',
+        closeDate: '2024-06-30',
+        salesType: 'Direct Sell',
+        speed: 'Fast',
+        crm: 'Salesforce',
+        soldBy: 'Chris',
+        seatCount: 50,
+        hoursAlloted: 120,
+        primaryContactName: 'John Smith',
+        primaryContactEmail: 'john@techcorp.com',
+        linkedinLink: 'https://linkedin.com/in/johnsmith',
+        avazaLink: 'https://avaza.com/project/001',
+        projectFolderLink: 'https://drive.google.com/folder1',
+        clientWebsiteLink: 'https://techcorp.com',
+        addOnsPurchased: ['Meet', 'Deal'],
+        milestones: []
       },
       {
         id: 'engagement-002',
-        account_id: 'account-002',
-        owner_user_id: 'user-rep-002',
+        accountName: 'Global Manufacturing Inc',
         name: 'Cloud Migration Project',
         status: 'KICK_OFF',
         health: 'YELLOW',
-        priority: 2,
-        start_date: '2024-02-01',
-        target_launch_date: '2024-08-15',
-        status_entered_at: '2024-02-01T08:00:00Z',
-        created_at: '2024-01-20T10:00:00Z',
-        updated_at: '2024-02-15T16:20:00Z',
-        milestones: [],
-        account: accounts[1],
-        owner: users.find(u => u.id === 'user-rep-002')!,
-        percent_complete: 15
+        assignedRep: 'Amanda',
+        startDate: '2024-02-01',
+        closeDate: '2024-08-15',
+        salesType: 'Channel',
+        speed: 'Medium',
+        crm: 'Dynamics',
+        soldBy: 'Dakota',
+        seatCount: 25,
+        hoursAlloted: 80,
+        primaryContactName: 'Sarah Johnson',
+        primaryContactEmail: 'sarah@globalmanuf.com',
+        addOnsPurchased: ['Forecasting', 'Migration'],
+        milestones: []
       },
       {
         id: 'engagement-003',
-        account_id: 'account-003',
-        owner_user_id: 'user-rep-003',
+        accountName: 'StartupFlow',
         name: 'Customer Portal Redesign',
         status: 'NEW',
         health: 'GREEN',
-        priority: 3,
-        start_date: '2024-03-01',
-        target_launch_date: '2024-07-01',
-        status_entered_at: '2024-02-25T12:00:00Z',
-        created_at: '2024-02-25T11:00:00Z',
-        updated_at: '2024-02-25T12:00:00Z',
-        milestones: [],
-        account: accounts[2],
-        owner: users.find(u => u.id === 'user-rep-003')!,
-        percent_complete: 0
-      }
-    ]
-  }
-
-  private getDefaultAccounts(): Account[] {
-    return [
-      {
-        id: 'account-001',
-        name: 'TechCorp Solutions',
-        segment: 'Enterprise',
-        region: 'North America',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 'account-002',
-        name: 'Global Manufacturing Inc',
-        segment: 'Mid-Market',
-        region: 'Europe',
-        created_at: '2024-01-05T00:00:00Z'
-      },
-      {
-        id: 'account-003',
-        name: 'StartupFlow',
-        segment: 'SMB',
-        region: 'Asia Pacific',
-        created_at: '2024-01-10T00:00:00Z'
-      },
-      {
-        id: 'account-004',
-        name: 'RetailChain Co',
-        segment: 'Enterprise',
-        region: 'North America',
-        created_at: '2024-01-15T00:00:00Z'
-      }
-    ]
-  }
-
-  private getDefaultUsers(): User[] {
-    return [
-      {
-        id: 'user-admin-001',
-        name: 'Chris Administrator',
-        email: 'chris@company.com',
-        role: 'EXECUTIVE',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 'user-manager-001',
-        name: 'Derek Manager',
-        email: 'derek@company.com',
-        role: 'MANAGER',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 'user-rep-001',
-        name: 'Rolando Representative',
-        email: 'rolando@company.com',
-        role: 'REP',
-        manager_id: 'user-manager-001',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 'user-rep-002',
-        name: 'Amanda Smith',
-        email: 'amanda@company.com',
-        role: 'REP',
-        manager_id: 'user-manager-001',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 'user-rep-003',
-        name: 'Lisa Johnson',
-        email: 'lisa@company.com',
-        role: 'REP',
-        manager_id: 'user-manager-001',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
+        assignedRep: 'Lisa',
+        startDate: '2024-03-01',
+        closeDate: '2024-07-01',
+        salesType: 'Greaser Sale',
+        speed: 'Slow',
+        crm: 'Hubspot',
+        soldBy: 'Steph',
+        seatCount: 10,
+        hoursAlloted: 40,
+        primaryContactName: 'Mike Chen',
+        primaryContactEmail: 'mike@startupflow.com',
+        addOnsPurchased: ['Content'],
+        milestones: []
       }
     ]
   }
