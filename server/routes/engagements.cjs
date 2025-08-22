@@ -13,6 +13,61 @@ const router = express.Router()
 // All routes require authentication
 router.use(authenticateToken)
 
+// Simple test endpoint to verify routing is working
+router.get('/test', (req, res) => {
+  res.json({
+    message: 'Engagement routes are working!',
+    timestamp: new Date().toISOString(),
+    user: req.user ? { id: req.user.id, email: req.user.email } : null
+  })
+})
+
+// Database connectivity test endpoint
+router.get('/db-test', async (req, res) => {
+  try {
+    console.log('Testing database connectivity...')
+    
+    // Test basic connection
+    const result = await query('SELECT NOW() as current_time, version() as db_version')
+    console.log('Database connection successful')
+    
+    // Test if required tables exist
+    const tableCheck = await query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('users', 'account', 'engagement')
+      ORDER BY table_name
+    `)
+    
+    // Test if we can query users table
+    let userCount = 0
+    try {
+      const userResult = await query('SELECT COUNT(*) as count FROM users')
+      userCount = parseInt(userResult.rows[0].count)
+    } catch (userError) {
+      console.error('Users table query error:', userError.message)
+    }
+    
+    res.json({
+      message: 'Database connectivity test',
+      database_time: result.rows[0].current_time,
+      database_version: result.rows[0].db_version,
+      existing_tables: tableCheck.rows.map(row => row.table_name),
+      users_count: userCount,
+      database_url_configured: !!process.env.DATABASE_URL,
+      environment: process.env.NODE_ENV || 'undefined'
+    })
+  } catch (error) {
+    console.error('Database test error:', error)
+    res.status(500).json({
+      error: 'Database connectivity failed',
+      message: error.message,
+      database_url_configured: !!process.env.DATABASE_URL
+    })
+  }
+})
+
 // Debug endpoint to check database structure
 router.get('/debug-schema', async (req, res) => {
   try {
