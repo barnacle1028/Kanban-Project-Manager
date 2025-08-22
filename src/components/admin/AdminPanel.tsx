@@ -2487,7 +2487,7 @@ function EditEngagementModal({ engagement, availableReps, onSave, onClose }: {
             </div>
           </div>
 
-          {/* Dates */}
+          {/* Project Timeline */}
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
               Project Timeline
@@ -2528,6 +2528,300 @@ function EditEngagementModal({ engagement, availableReps, onSave, onClose }: {
                   }}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Sales Information */}
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
+              Sales Information
+            </h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Sales Type
+                </label>
+                <select
+                  value={formData.salesType || ''}
+                  onChange={(e) => handleChange('salesType', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Select Type</option>
+                  {salesTypeOptions.map(type => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Speed
+                </label>
+                <select
+                  value={formData.speed || ''}
+                  onChange={(e) => handleChange('speed', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Select Speed</option>
+                  {speedOptions.map(speed => (
+                    <option key={speed} value={speed}>
+                      {speed}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  CRM
+                </label>
+                <select
+                  value={formData.crm || ''}
+                  onChange={(e) => handleChange('crm', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Select CRM</option>
+                  {crmOptions.map(crm => (
+                    <option key={crm} value={crm}>
+                      {crm}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Sold By
+                </label>
+                <input
+                  type="text"
+                  value={formData.soldBy || ''}
+                  onChange={(e) => handleChange('soldBy', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="Enter salesperson"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Project Details */}
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
+              Project Details
+            </h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Seat Count
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.seatCount || ''}
+                  onChange={(e) => handleChange('seatCount', parseInt(e.target.value) || undefined)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="Number of seats"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Hours Allocated
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.hoursAlloted || ''}
+                  onChange={(e) => handleChange('hoursAlloted', parseInt(e.target.value) || undefined)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="Total hours"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
+              Contact Information
+            </h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Primary Contact Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.primaryContactName || ''}
+                  onChange={(e) => handleChange('primaryContactName', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="Contact name"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Primary Contact Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.primaryContactEmail || ''}
+                  onChange={(e) => handleChange('primaryContactEmail', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="contact@company.com"
+                />
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                LinkedIn Profile
+              </label>
+              <input
+                type="url"
+                value={formData.linkedinLink || ''}
+                onChange={(e) => handleChange('linkedinLink', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+                placeholder="https://linkedin.com/in/..."
+              />
+            </div>
+          </div>
+
+          {/* Project Links */}
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
+              Project Links
+            </h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Avaza Project Link
+                </label>
+                <input
+                  type="url"
+                  value={formData.avazaLink || ''}
+                  onChange={(e) => handleChange('avazaLink', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="https://avaza.com/..."
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Project Folder Link
+                </label>
+                <input
+                  type="url"
+                  value={formData.projectFolderLink || ''}
+                  onChange={(e) => handleChange('projectFolderLink', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="https://drive.google.com/..."
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Client Website
+                </label>
+                <input
+                  type="url"
+                  value={formData.clientWebsiteLink || ''}
+                  onChange={(e) => handleChange('clientWebsiteLink', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="https://clientwebsite.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Add-Ons */}
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
+              Add-Ons Purchased
+            </h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+              {addOnOptions.map(addOn => (
+                <label key={addOn} style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
+                  <input
+                    type="checkbox"
+                    checked={(formData.addOnsPurchased || []).includes(addOn)}
+                    onChange={(e) => handleAddOnChange(addOn, e.target.checked)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  {addOn}
+                </label>
+              ))}
             </div>
           </div>
 

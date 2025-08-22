@@ -293,6 +293,28 @@ router.post('/',
         )
       }
 
+      // Log audit trail for creation
+      try {
+        await query(
+          `INSERT INTO activity_log (entity_type, entity_id, action, payload_json, user_id, created_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())`,
+          [
+            'engagement', 
+            engagement.id, 
+            'CREATE_ENGAGEMENT',
+            JSON.stringify({ 
+              engagement_name: engagement.name,
+              account_name: engagement.account_name,
+              assigned_rep: engagement.assigned_rep
+            }),
+            req.user?.id || null
+          ]
+        )
+      } catch (auditError) {
+        console.error('Audit logging error:', auditError)
+        // Don't fail the creation if audit logging fails
+      }
+
       res.status(201).json({
         message: 'Engagement created successfully',
         engagement
@@ -374,6 +396,11 @@ router.patch('/:engagementId',
         return res.status(400).json({ error: 'No valid fields to update' })
       }
 
+      // Get the original engagement for audit comparison
+      const originalQuery = `SELECT * FROM engagement WHERE id = $1`
+      const originalResult = await query(originalQuery, [engagementId])
+      const originalEngagement = originalResult.rows[0]
+
       const updateQuery = `
         UPDATE engagement 
         SET ${setClause.join(', ')}, updated_at = NOW()
@@ -382,6 +409,43 @@ router.patch('/:engagementId',
       `
 
       const result = await query(updateQuery, params)
+      const updatedEngagement = result.rows[0]
+
+      // Log audit trail
+      try {
+        const changes = []
+        for (const [key, value] of Object.entries(updates)) {
+          if (allowedFields.includes(key)) {
+            const dbField = fieldMap[key] || key
+            const oldValue = originalEngagement[dbField]
+            const newValue = value
+            if (oldValue !== newValue) {
+              changes.push({
+                field: key,
+                old_value: oldValue,
+                new_value: newValue
+              })
+            }
+          }
+        }
+
+        if (changes.length > 0) {
+          await query(
+            `INSERT INTO activity_log (entity_type, entity_id, action, payload_json, user_id, created_at)
+             VALUES ($1, $2, $3, $4, $5, NOW())`,
+            [
+              'engagement', 
+              engagementId, 
+              'UPDATE_ENGAGEMENT',
+              JSON.stringify({ changes }),
+              req.user?.id || null
+            ]
+          )
+        }
+      } catch (auditError) {
+        console.error('Audit logging error:', auditError)
+        // Don't fail the update if audit logging fails
+      }
 
       res.json({
         message: 'Engagement updated successfully',
@@ -486,9 +550,9 @@ router.delete('/:engagementId',
     try {
       const { engagementId } = req.params
 
-      // Check if engagement can be deleted (only NEW or early stage)
+      // Get engagement details for audit logging before deletion
       const engagementCheck = await query(
-        'SELECT status FROM engagement WHERE id = $1',
+        'SELECT * FROM engagement WHERE id = $1',
         [engagementId]
       )
 
@@ -503,6 +567,29 @@ router.delete('/:engagementId',
         return res.status(403).json({ 
           error: 'Cannot delete engagement that is not in NEW status' 
         })
+      }
+
+      // Log audit trail before deletion
+      try {
+        await query(
+          `INSERT INTO activity_log (entity_type, entity_id, action, payload_json, user_id, created_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())`,
+          [
+            'engagement', 
+            engagementId, 
+            'DELETE_ENGAGEMENT',
+            JSON.stringify({ 
+              engagement_name: engagement.name,
+              account_name: engagement.account_name,
+              assigned_rep: engagement.assigned_rep,
+              status: engagement.status
+            }),
+            req.user?.id || null
+          ]
+        )
+      } catch (auditError) {
+        console.error('Audit logging error:', auditError)
+        // Don't fail the deletion if audit logging fails
       }
 
       // Delete engagement (cascades to milestones)
