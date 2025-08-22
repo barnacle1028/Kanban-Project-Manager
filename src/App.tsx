@@ -440,7 +440,7 @@ function App() {
 function NavigationMenu({ user }: { user: any }) {
   const [activeView, setActiveView] = React.useState('dashboard')
 
-  const navItems = React.useMemo(() => {
+  const [items, navItems] = React.useMemo(() => {
     const items = [
       { id: 'dashboard', label: '📊 Dashboard', roles: ['REP', 'MANAGER', 'ADMIN'] },
       { id: 'engagements', label: '📝 My Engagements', roles: ['REP', 'MANAGER', 'ADMIN'] },
@@ -454,18 +454,22 @@ function NavigationMenu({ user }: { user: any }) {
       items.push({ id: 'admin', label: '⚙️ Administration', roles: ['ADMIN'] })
     }
 
-    return items.filter(item => 
+    const filtered = items.filter(item => 
       item.roles.includes(user.role) || (item.id === 'admin' && user.name === 'Chris')
     )
+
+    return [items, filtered]
   }, [user.role, user.name])
 
   return (
     <nav style={{ marginTop: '20px' }}>
       {/* Debug info */}
       <div style={{ background: 'yellow', padding: '10px', marginBottom: '10px' }}>
-        DEBUG: User: {user?.name}, Role: {user?.role}, NavItems: {navItems.length}
+        DEBUG: User: {user?.name}, Role: "{user?.role}", NavItems: {navItems.length}
         <br />
-        Items: {navItems.map(item => item.label).join(', ')}
+        All items before filter: {items.map(item => `${item.label}(${item.roles.join(',')})`).join(' | ')}
+        <br />
+        Filter check: role="{user?.role}" name="{user?.name}" isChris={user?.name === 'Chris'}
       </div>
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         {navItems.map(item => (
