@@ -323,7 +323,10 @@ function NonModalUserManagement() {
 
   const handleUpdateUser = async (userId, userData) => {
     try {
-      await userManagementService.updateUser(userId, userData)
+      console.log('Updating user:', userId, userData) // Debug log
+      const result = await userManagementService.updateUser(userId, userData)
+      console.log('Update result:', result) // Debug log
+      alert('User updated successfully!') // Success confirmation
       setShowEditModal(false)
       setSelectedUser(null)
       loadData()
@@ -650,7 +653,16 @@ function EditUserModal({ user, userRoles, onSave, onClose }) {
       return
     }
 
-    onSave(user.id, formData)
+    console.log('Form submission data:', formData) // Debug log
+    
+    // Clean up the data before sending
+    const updateData = { ...formData }
+    if (!updateData.user_role_id) {
+      delete updateData.user_role_id // Remove empty role
+    }
+    
+    console.log('Cleaned data for API:', updateData) // Debug log
+    onSave(user.id, updateData)
   }
 
   const handleChange = (field, value) => {
