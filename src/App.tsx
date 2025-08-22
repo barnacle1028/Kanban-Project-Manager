@@ -461,6 +461,12 @@ function NavigationMenu({ user }: { user: any }) {
 
   return (
     <nav style={{ marginTop: '20px' }}>
+      {/* Debug info */}
+      <div style={{ background: 'yellow', padding: '10px', marginBottom: '10px' }}>
+        DEBUG: User: {user?.name}, Role: {user?.role}, NavItems: {navItems.length}
+        <br />
+        Items: {navItems.map(item => item.label).join(', ')}
+      </div>
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         {navItems.map(item => (
           <button
