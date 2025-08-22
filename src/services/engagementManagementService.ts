@@ -191,20 +191,30 @@ class EngagementManagementService {
 
   async getAvailableReps(): Promise<string[]> {
     try {
-      const response = await api.get<string[]>('/engagements/reps')
-      return response
+      console.log('Fetching available reps from user management system...')
+      const response = await api.get<Array<{ id: string, name: string, email: string, role_type: string, dashboard_access: string }>>('/engagements/reps')
+      console.log('Available reps response:', response)
+      
+      if (Array.isArray(response) && response.length > 0) {
+        // Extract just the names for the dropdown, but log full details
+        console.log('Found active reps:', response.map(rep => `${rep.name} (${rep.role_type})`))
+        return response.map(rep => rep.name)
+      } else {
+        console.warn('No active reps found in user management system')
+        console.warn('This means either:')
+        console.warn('1. No users have been created yet')
+        console.warn('2. No users have Rep/Manager/Admin roles assigned') 
+        console.warn('3. Database migrations have not been run')
+        return []
+      }
     } catch (error) {
-      console.error('Error fetching available reps:', error)
-      // Fallback to default reps if API call fails
-      return [
-        'Dakota',
-        'Chris',
-        'Amanda',
-        'Rolando',
-        'Lisa',
-        'Steph',
-        'Josh'
-      ]
+      console.error('Error fetching available reps from user management system:', error)
+      console.warn('This likely means the user management system is not set up yet')
+      console.warn('Please ensure:')
+      console.warn('1. Database migrations have been run')
+      console.warn('2. Users have been created in the user management system')
+      console.warn('3. Users have appropriate roles assigned')
+      return []
     }
   }
 

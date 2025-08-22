@@ -13,14 +13,40 @@ const router = express.Router()
 // All routes require authentication
 router.use(authenticateToken)
 
-// Get available reps
+// Get available reps from user management system
 router.get('/reps', async (req, res) => {
   try {
-    const result = await query(
-      'SELECT DISTINCT name FROM app_user WHERE role IN (\'REP\', \'MANAGER\') ORDER BY name'
-    )
+    console.log('Fetching available reps from user management system...')
+    const result = await query(`
+      SELECT DISTINCT 
+        u.id,
+        u.first_name,
+        u.last_name,
+        CONCAT(u.first_name, ' ', u.last_name) as full_name,
+        u.email,
+        ur.role_type,
+        ur.dashboard_access
+      FROM users u
+      JOIN user_role_assignments ura ON u.id = ura.user_id 
+      JOIN user_roles ur ON ura.user_role_id = ur.id
+      WHERE ura.is_active = true 
+        AND u.is_active = true 
+        AND u.status = 'active'
+        AND ur.dashboard_access IN ('Rep', 'Manager', 'Admin')
+      ORDER BY u.first_name, u.last_name
+    `)
     
-    const reps = result.rows.map(row => row.name)
+    console.log(`Found ${result.rows.length} active reps in database:`, result.rows)
+    
+    // Return both the display name and user details for assignment
+    const reps = result.rows.map(row => ({
+      id: row.id,
+      name: row.full_name,
+      email: row.email,
+      role_type: row.role_type,
+      dashboard_access: row.dashboard_access
+    }))
+    
     res.json(reps)
   } catch (error) {
     console.error('Get available reps error:', error)
@@ -239,34 +265,37 @@ router.post('/',
         addOnsPurchased
       } = req.body
 
-      // For now, set a default owner_user_id (can be enhanced to select based on assignedRep)
+      // Set owner_user_id to the currently logged-in user
       let owner_user_id = req.user.id
+      let assigned_rep_user_id = null
+      
+      // If assignedRep is provided, find the user ID
       if (assignedRep) {
-        const ownerCheck = await query(
-          'SELECT id FROM app_user WHERE name = $1',
+        const repCheck = await query(
+          'SELECT id FROM users WHERE CONCAT(first_name, \' \', last_name) = $1 AND is_active = true',
           [assignedRep]
         )
-        if (ownerCheck.rows.length > 0) {
-          owner_user_id = ownerCheck.rows[0].id
+        if (repCheck.rows.length > 0) {
+          assigned_rep_user_id = repCheck.rows[0].id
         }
       }
 
       // Create engagement
       const createQuery = `
         INSERT INTO engagement (
-          owner_user_id, name, account_name, status, health, assigned_rep,
+          owner_user_id, name, account_name, status, health, assigned_rep, assigned_rep_user_id,
           start_date, close_date, sales_type, speed, crm,
           avaza_link, project_folder_link, client_website_link,
           sold_by, seat_count, hours_allocated,
           primary_contact_name, primary_contact_email, linkedin_link,
           add_ons_purchased
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
         RETURNING *
       `
 
       const result = await query(createQuery, [
-        owner_user_id, name, accountName, status, health, assignedRep,
+        owner_user_id, name, accountName, status, health, assignedRep, assigned_rep_user_id,
         startDate, closeDate, salesType, speed, crm,
         avazaLink, projectFolderLink, clientWebsiteLink,
         soldBy, seatCount, hoursAlloted,
@@ -361,10 +390,22 @@ router.patch('/:engagementId',
         'addOnsPurchased'
       ]
       
+      // Handle assignedRep -> user ID lookup
+      if (updates.assignedRep) {
+        const repCheck = await query(
+          'SELECT id FROM users WHERE CONCAT(first_name, \' \', last_name) = $1 AND is_active = true',
+          [updates.assignedRep]
+        )
+        if (repCheck.rows.length > 0) {
+          updates.assignedRepUserId = repCheck.rows[0].id
+        }
+      }
+
       // Map field names to database columns
       const fieldMap = {
         'accountName': 'account_name',
         'assignedRep': 'assigned_rep',
+        'assignedRepUserId': 'assigned_rep_user_id',
         'startDate': 'start_date',
         'closeDate': 'close_date',
         'salesType': 'sales_type',
