@@ -138,6 +138,7 @@ class UserManagementService {
       }
 
       mockUsersWithRoles.push(newUser)
+      saveUsersToStorage(mockUsersWithRoles)
 
       // Send welcome email if requested
       if (data.send_welcome_email) {
@@ -174,6 +175,7 @@ class UserManagementService {
       }
 
       mockUsersWithRoles[userIndex] = updatedUser
+      saveUsersToStorage(mockUsersWithRoles)
 
       // Log activity
       await this.logUserActivity(id, 'profile_update', 'Profile updated by admin')
@@ -199,6 +201,7 @@ class UserManagementService {
         status: 'inactive',
         updated_at: new Date().toISOString()
       }
+      saveUsersToStorage(mockUsersWithRoles)
 
       // Log activity
       await this.logUserActivity(id, 'profile_update', 'Account deactivated by admin')
@@ -544,8 +547,30 @@ class UserManagementService {
   }
 }
 
-// Mock data for development/testing
-const mockUsersWithRoles: UserWithRole[] = [
+// Mock data for development/testing - with localStorage persistence
+const STORAGE_KEY = 'kanban_users_data'
+
+const getStoredUsers = (): UserWithRole[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (error) {
+    console.error('Error loading stored users:', error)
+  }
+  return getDefaultUsers()
+}
+
+const saveUsersToStorage = (users: UserWithRole[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(users))
+  } catch (error) {
+    console.error('Error saving users to storage:', error)
+  }
+}
+
+const getDefaultUsers = (): UserWithRole[] => [
   {
     id: 'user-admin-001',
     email: 'chris@company.com',
@@ -800,6 +825,9 @@ const mockUsersWithRoles: UserWithRole[] = [
     }
   }
 ]
+
+// Initialize persistent storage
+let mockUsersWithRoles: UserWithRole[] = getStoredUsers()
 
 const mockUserActivities: UserActivity[] = [
   {
