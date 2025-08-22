@@ -4,6 +4,7 @@ import { comprehensiveEngagements, getEngagementsByRep, getEngagementsByManager,
 import { userData, getUserByEmail, determineRoleFromEmail } from './data/userData'
 import type { EngagementWithMilestones } from './api/types'
 import UserRoleManagement from './components/admin/UserRoleManagement'
+import AdminPanel from './components/admin/AdminPanel'
 import PasswordReset from './components/auth/PasswordReset'
 import PasswordResetConfirm from './components/auth/PasswordResetConfirm'
 import UserSettings from './components/user/UserSettings'
@@ -504,7 +505,7 @@ function AppContent({ user }: { user: any }) {
       return <TeamManagement user={user} />
     
     case 'admin':
-      return <AdminPanel user={user} />
+      return <AdminPanel />
     
     default:
       return <Dashboard user={user} />
@@ -716,17 +717,6 @@ function TeamManagement({ user }: { user: any }) {
   )
 }
 
-function AdminPanel({ user }: { user: any }) {
-  return (
-    <div style={{ padding: '20px' }}>
-      <h2>⚙️ Administration Panel</h2>
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
-        <p>Administrative features for {user.role} role.</p>
-        <p>System configuration, user management, and security settings.</p>
-      </div>
-    </div>
-  )
-}
 
 // Add to window for communication between components
 declare global {
