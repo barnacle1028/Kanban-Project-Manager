@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useUsers } from '../../hooks/useUsers'
 
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState('users')
+  const [activeTab, setActiveTab] = useState('settings')
 
   return (
     <div style={{ padding: '20px' }}>
@@ -10,8 +10,7 @@ export default function AdminPanel() {
         <h2 style={{ margin: '0 0 20px 0', color: '#111827' }}>Administration Panel</h2>
         <nav style={{ display: 'flex', gap: '20px' }}>
           {[
-            { id: 'users', label: 'User Management' },
-            { id: 'settings', label: 'System Settings' },
+            { id: 'settings', label: 'Settings' },
             { id: 'audit', label: 'Audit Logs' },
             { id: 'reports', label: 'Reports' }
           ].map(tab => (
@@ -36,10 +35,75 @@ export default function AdminPanel() {
       </div>
 
       <div>
-        {activeTab === 'users' && <UserManagement />}
-        {activeTab === 'settings' && <SystemSettings />}
+        {activeTab === 'settings' && <SettingsPanel />}
         {activeTab === 'audit' && <AuditLogs />}
         {activeTab === 'reports' && <Reports />}
+      </div>
+    </div>
+  )
+}
+
+function SettingsPanel() {
+  const [activeSettingsTab, setActiveSettingsTab] = useState('userRoles')
+
+  return (
+    <div>
+      <h3>Settings</h3>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px' }}>
+        {[
+          { id: 'userRoles', label: 'User Roles' },
+          { id: 'userManagement', label: 'User Management' },
+          { id: 'engagementManagement', label: 'Engagement Management' },
+          { id: 'engagementTypes', label: 'Engagement Types' },
+          { id: 'orgSettings', label: 'Organization Settings' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSettingsTab(tab.id)}
+            style={{
+              padding: '8px 12px',
+              background: activeSettingsTab === tab.id ? '#4f46e5' : 'transparent',
+              color: activeSettingsTab === tab.id ? 'white' : '#6b7280',
+              border: '1px solid #e5e7eb',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div>
+        {activeSettingsTab === 'userRoles' && <UserRolesSettings />}
+        {activeSettingsTab === 'userManagement' && <UserManagement />}
+        {activeSettingsTab === 'engagementManagement' && <EngagementManagementSettings />}
+        {activeSettingsTab === 'engagementTypes' && <EngagementTypesSettings />}
+        {activeSettingsTab === 'orgSettings' && <OrganizationSettings />}
+      </div>
+    </div>
+  )
+}
+
+function UserRolesSettings() {
+  return (
+    <div>
+      <h4>User Role Configuration</h4>
+      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
+        Define and manage user roles and their permissions.
+      </p>
+      <div style={{ 
+        background: '#f9fafb', 
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '20px',
+        textAlign: 'center',
+        color: '#6b7280'
+      }}>
+        User role configuration interface would be implemented here.
       </div>
     </div>
   )
@@ -59,7 +123,7 @@ function UserManagement() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h3 style={{ margin: 0 }}>User Management</h3>
+        <h4 style={{ margin: 0 }}>User Management</h4>
         <button style={{
           background: '#4f46e5',
           color: 'white',
@@ -99,8 +163,8 @@ function UserManagement() {
                     borderRadius: '4px',
                     fontSize: '12px',
                     fontWeight: '500',
-                    background: user.role === 'ADMIN' ? '#fef2f2' : user.role === 'MANAGER' ? '#f0f9ff' : '#f0fdf4',
-                    color: user.role === 'ADMIN' ? '#dc2626' : user.role === 'MANAGER' ? '#0369a1' : '#16a34a'
+                    background: user.role === 'EXECUTIVE' ? '#fef2f2' : user.role === 'MANAGER' ? '#f0f9ff' : '#f0fdf4',
+                    color: user.role === 'EXECUTIVE' ? '#dc2626' : user.role === 'MANAGER' ? '#0369a1' : '#16a34a'
                   }}>
                     {user.role}
                   </span>
@@ -156,48 +220,69 @@ function UserManagement() {
   )
 }
 
-function SystemSettings() {
+function EngagementManagementSettings() {
   return (
     <div>
-      <h3>System Settings</h3>
-      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-        <SettingsCard title="Authentication" description="Configure login and security settings">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" defaultChecked />
-              Require CAPTCHA for login
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" defaultChecked />
-              Enable account lockout
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" />
-              Require password reset every 90 days
-            </label>
-          </div>
-        </SettingsCard>
-
-        <SettingsCard title="Email Notifications" description="Configure system email settings">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" defaultChecked />
-              Send milestone completion notifications
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" defaultChecked />
-              Weekly progress reports
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" />
-              Daily digest emails
-            </label>
-          </div>
-        </SettingsCard>
+      <h4>Engagement Management</h4>
+      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
+        Configure engagement workflows, statuses, and business rules.
+      </p>
+      <div style={{ 
+        background: '#f9fafb', 
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '20px',
+        textAlign: 'center',
+        color: '#6b7280'
+      }}>
+        Engagement management configuration would be implemented here.
       </div>
     </div>
   )
 }
+
+function EngagementTypesSettings() {
+  return (
+    <div>
+      <h4>Engagement Types</h4>
+      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
+        Define and manage different types of engagements and their properties.
+      </p>
+      <div style={{ 
+        background: '#f9fafb', 
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '20px',
+        textAlign: 'center',
+        color: '#6b7280'
+      }}>
+        Engagement types configuration would be implemented here.
+      </div>
+    </div>
+  )
+}
+
+function OrganizationSettings() {
+  return (
+    <div>
+      <h4>Organization Settings</h4>
+      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
+        Configure organization-wide settings and preferences.
+      </p>
+      <div style={{ 
+        background: '#f9fafb', 
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '20px',
+        textAlign: 'center',
+        color: '#6b7280'
+      }}>
+        Organization settings configuration would be implemented here.
+      </div>
+    </div>
+  )
+}
+
 
 function AuditLogs() {
   return (

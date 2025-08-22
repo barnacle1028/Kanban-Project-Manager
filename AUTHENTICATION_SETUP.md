@@ -41,7 +41,7 @@ Update your `.env` file:
 
 ```env
 # Database
-DATABASE_URL=postgresql://username:password@localhost:5432/kanban_db
+DATABASE_URL=postgresql://username:SehomeGraduation2026!:5432/kanban_db
 
 # JWT Configuration
 JWT_SECRET=your-super-secret-jwt-key-change-in-production

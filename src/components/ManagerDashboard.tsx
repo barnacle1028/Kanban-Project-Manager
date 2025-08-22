@@ -7,7 +7,6 @@ interface ManagerDashboardProps {
   onSelectRep: (repName: string) => void
   repAvazaLinks: Record<string, string>
   onUpdateRepAvazaLink: (repName: string, link: string) => void
-  onGoToRepAdmin: () => void
   onGoToEngagementAdmin: () => void
 }
 
@@ -66,7 +65,6 @@ export default function ManagerDashboard({
   onSelectRep,
   repAvazaLinks,
   onUpdateRepAvazaLink,
-  onGoToRepAdmin,
   onGoToEngagementAdmin
 }: ManagerDashboardProps) {
   const [editingRep, setEditingRep] = useState<string | null>(null)
@@ -281,29 +279,6 @@ export default function ManagerDashboard({
               }}
             >
               📋 Manage Engagements
-            </button>
-            <button
-              onClick={onGoToRepAdmin}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '600',
-                color: 'white',
-                background: '#8b5cf6',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: 'Trebuchet MS, Arial, sans-serif',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#7c3aed'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#8b5cf6'
-              }}
-            >
-              ⚙️ Manage Reps
             </button>
           </div>
         </div>
