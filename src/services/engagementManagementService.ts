@@ -162,15 +162,26 @@ class EngagementManagementService {
   async createEngagement(data: CreateEngagementRequest): Promise<Engagement> {
     try {
       console.log('Creating engagement with data:', data)
+      
+      // First, test connectivity with a simple health check
+      try {
+        const healthCheck = await api.get('/health')
+        console.log('Health check response:', healthCheck)
+      } catch (healthError) {
+        console.error('Health check failed:', healthError)
+      }
+      
       const response = await api.post<{ engagement: any }>('/engagements', data)
       return this.transformEngagementFromAPI(response.engagement)
     } catch (error: any) {
       console.error('Error creating engagement:', error)
       console.error('Error response:', error.response?.data)
+      console.error('Error status:', error.status)
+      console.error('Error data:', error.data)
       
       // Pass through the detailed error from the API
-      const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message || 'Failed to create engagement'
-      const sqlError = error.response?.data?.sqlError
+      const errorMessage = error.data?.details || error.data?.error || error.message || 'Failed to create engagement'
+      const sqlError = error.data?.sqlError
       
       if (sqlError) {
         throw new Error(`${errorMessage} (SQL: ${sqlError})`)

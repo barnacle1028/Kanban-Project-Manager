@@ -1,4 +1,25 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  // If VITE_API_BASE_URL is set, use it
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL
+  }
+  
+  // If in production (deployed), use the current domain with /api
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return `${window.location.protocol}//${window.location.host}/api`
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:3001/api'
+}
+
+const API_BASE_URL = getApiBaseUrl()
+
+// Debug log the API base URL
+console.log('API_BASE_URL:', API_BASE_URL)
+console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL)
+console.log('Current hostname:', window.location.hostname)
 
 export class ApiError extends Error {
   constructor(
@@ -13,6 +34,14 @@ export class ApiError extends Error {
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
+  
+  // Debug logging
+  console.log('API Request:', {
+    url,
+    method: options.method || 'GET',
+    API_BASE_URL,
+    endpoint
+  })
   
   // Get access token from localStorage
   const accessToken = localStorage.getItem('accessToken')
