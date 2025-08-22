@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useUsers } from '../../hooks/useUsers'
+import UserRoleManagement from './UserRoleManagement'
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('settings')
@@ -89,24 +90,7 @@ function SettingsPanel() {
 }
 
 function UserRolesSettings() {
-  return (
-    <div>
-      <h4>User Role Configuration</h4>
-      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-        Define and manage user roles and their permissions.
-      </p>
-      <div style={{ 
-        background: '#f9fafb', 
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        padding: '20px',
-        textAlign: 'center',
-        color: '#6b7280'
-      }}>
-        User role configuration interface would be implemented here.
-      </div>
-    </div>
-  )
+  return <UserRoleManagement />
 }
 
 function UserManagement() {
