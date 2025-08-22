@@ -295,12 +295,13 @@ function NonModalUserManagement() {
     try {
       setLoading(true)
       const [usersResponse, rolesResponse] = await Promise.all([
-        userManagementService.getUsers({ 
-          page: 1, 
-          limit: 50, 
-          filter: { ...filter, search: searchTerm }, 
-          sort: { field: 'created_at', direction: 'desc' }
-        }),
+        userManagementService.getAllUsers({ 
+          ...filter, 
+          search: searchTerm 
+        }, { 
+          field: 'created_at', 
+          direction: 'desc' 
+        }, 1, 50),
         userRoleService.getAllUserRoles()
       ])
       setUsers(usersResponse.users || [])
