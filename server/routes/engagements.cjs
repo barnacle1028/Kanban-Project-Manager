@@ -51,6 +51,78 @@ router.get('/debug-schema', async (req, res) => {
   }
 })
 
+// Test endpoint to simulate engagement creation step by step
+router.post('/test-create', async (req, res) => {
+  try {
+    console.log('=== TEST ENGAGEMENT CREATION ===')
+    console.log('Request body:', req.body)
+    
+    const { accountName = 'Test Account', name = 'Test Engagement' } = req.body
+    
+    // Step 1: Test account creation
+    console.log('Step 1: Testing account creation...')
+    let account_id
+    try {
+      const accountResult = await query('SELECT id FROM account WHERE name = $1', [accountName])
+      if (accountResult.rows.length > 0) {
+        account_id = accountResult.rows[0].id
+        console.log('Found existing account:', account_id)
+      } else {
+        const newAccount = await query('INSERT INTO account (name) VALUES ($1) RETURNING id', [accountName])
+        account_id = newAccount.rows[0].id
+        console.log('Created new account:', account_id)
+      }
+    } catch (accountError) {
+      console.error('Account error:', accountError)
+      return res.status(500).json({ step: 'account', error: accountError.message })
+    }
+    
+    // Step 2: Test user lookup
+    console.log('Step 2: Testing user lookup...')
+    let user_count = 0
+    try {
+      const userResult = await query('SELECT COUNT(*) as count FROM users WHERE is_active = true')
+      user_count = userResult.rows[0].count
+      console.log('Active users count:', user_count)
+    } catch (userError) {
+      console.error('User lookup error:', userError)
+      return res.status(500).json({ step: 'user_lookup', error: userError.message })
+    }
+    
+    // Step 3: Test minimal engagement creation
+    console.log('Step 3: Testing minimal engagement creation...')
+    try {
+      const result = await query(`
+        INSERT INTO engagement (account_id, owner_user_id, name, account_name, status, health)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+      `, [account_id, req.user.id, name, accountName, 'NEW', 'GREEN'])
+      
+      console.log('Created engagement:', result.rows[0].id)
+      
+      res.json({
+        success: true,
+        engagement_id: result.rows[0].id,
+        account_id: account_id,
+        user_count: user_count,
+        message: 'Test engagement created successfully'
+      })
+    } catch (engagementError) {
+      console.error('Engagement creation error:', engagementError)
+      return res.status(500).json({ 
+        step: 'engagement_creation', 
+        error: engagementError.message,
+        code: engagementError.code,
+        detail: engagementError.detail
+      })
+    }
+    
+  } catch (error) {
+    console.error('Test create error:', error)
+    res.status(500).json({ step: 'general', error: error.message })
+  }
+})
+
 // Get available reps from user management system
 router.get('/reps', async (req, res) => {
   try {
