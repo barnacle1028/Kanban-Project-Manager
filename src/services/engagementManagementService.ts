@@ -1,5 +1,5 @@
 import type { Engagement, ProjectStatus, Speed, CRM, SalesType, AddOn } from '../types'
-import { auditService } from './auditService'
+import { api } from '../api/client'
 
 // Re-export Engagement type for other components
 export type { Engagement }
@@ -72,26 +72,6 @@ export interface PaginatedEngagementResponse {
 }
 
 class EngagementManagementService {
-  private storageKey = 'kanban_engagements_data'
-
-  private getStoredEngagements(): Engagement[] {
-    try {
-      const stored = localStorage.getItem(this.storageKey)
-      return stored ? JSON.parse(stored) : this.getDefaultEngagements()
-    } catch (error) {
-      console.error('Error loading stored engagements:', error)
-      return this.getDefaultEngagements()
-    }
-  }
-
-  private saveEngagementsToStorage(engagements: Engagement[]) {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(engagements))
-    } catch (error) {
-      console.error('Error saving engagements to storage:', error)
-    }
-  }
-
   async getAllEngagements(
     filter?: EngagementFilter,
     sort?: EngagementListSort,
@@ -99,25 +79,39 @@ class EngagementManagementService {
     limit: number = 20
   ): Promise<PaginatedEngagementResponse> {
     try {
-      let engagements = this.getStoredEngagements()
+      // Build query parameters
+      const params = new URLSearchParams()
+      params.append('limit', limit.toString())
+      params.append('offset', ((page - 1) * limit).toString())
 
-      // Apply filters
       if (filter) {
-        if (filter.status) {
-          engagements = engagements.filter(e => e.status === filter.status)
-        }
+        if (filter.status) params.append('status', filter.status)
+        if (filter.search) params.append('search', filter.search)
+      }
+
+      const response = await api.get<{
+        engagements: Engagement[]
+        pagination: { total: number, limit: number, offset: number }
+      }>(`/engagements?${params}`)
+
+      // Transform backend response to match frontend expectations
+      const transformedEngagements = response.engagements.map(this.transformEngagementFromAPI)
+
+      // Apply client-side filtering for fields not handled by backend
+      let filteredEngagements = transformedEngagements
+      if (filter) {
         if (filter.health) {
-          engagements = engagements.filter(e => e.health === filter.health)
+          filteredEngagements = filteredEngagements.filter(e => e.health === filter.health)
         }
         if (filter.assignedRep) {
-          engagements = engagements.filter(e => e.assignedRep === filter.assignedRep)
+          filteredEngagements = filteredEngagements.filter(e => e.assignedRep === filter.assignedRep)
         }
         if (filter.accountName) {
-          engagements = engagements.filter(e => e.accountName === filter.accountName)
+          filteredEngagements = filteredEngagements.filter(e => e.accountName === filter.accountName)
         }
         if (filter.search) {
           const searchLower = filter.search.toLowerCase()
-          engagements = engagements.filter(e => 
+          filteredEngagements = filteredEngagements.filter(e => 
             e.name.toLowerCase().includes(searchLower) ||
             e.accountName.toLowerCase().includes(searchLower) ||
             (e.assignedRep && e.assignedRep.toLowerCase().includes(searchLower))
@@ -125,9 +119,9 @@ class EngagementManagementService {
         }
       }
 
-      // Apply sorting
+      // Apply client-side sorting
       if (sort) {
-        engagements.sort((a, b) => {
+        filteredEngagements.sort((a, b) => {
           const aVal = a[sort.field]
           const bVal = b[sort.field]
           
@@ -139,17 +133,12 @@ class EngagementManagementService {
         })
       }
 
-      // Apply pagination
-      const total = engagements.length
-      const start = (page - 1) * limit
-      const paginatedEngagements = engagements.slice(start, start + limit)
-
       return {
-        engagements: paginatedEngagements,
-        total,
+        engagements: filteredEngagements,
+        total: response.pagination?.total || filteredEngagements.length,
         page,
         limit,
-        total_pages: Math.ceil(total / limit)
+        total_pages: Math.ceil((response.pagination?.total || filteredEngagements.length) / limit)
       }
     } catch (error) {
       console.error('Error fetching engagements:', error)
@@ -159,57 +148,21 @@ class EngagementManagementService {
 
   async getEngagementById(id: string): Promise<Engagement | null> {
     try {
-      const engagements = this.getStoredEngagements()
-      return engagements.find(engagement => engagement.id === id) || null
+      const response = await api.get<any>(`/engagements/${id}`)
+      return this.transformEngagementFromAPI(response)
     } catch (error) {
       console.error('Error fetching engagement:', error)
+      if (error instanceof Error && 'status' in error && (error as any).status === 404) {
+        return null
+      }
       throw new Error('Failed to fetch engagement')
     }
   }
 
   async createEngagement(data: CreateEngagementRequest): Promise<Engagement> {
     try {
-      const engagements = this.getStoredEngagements()
-
-      const newEngagement: Engagement = {
-        id: `engagement-${Date.now()}`,
-        accountName: data.accountName,
-        name: data.name,
-        status: data.status,
-        health: data.health,
-        assignedRep: data.assignedRep,
-        startDate: data.startDate,
-        closeDate: data.closeDate,
-        salesType: data.salesType,
-        speed: data.speed,
-        crm: data.crm,
-        avazaLink: data.avazaLink,
-        projectFolderLink: data.projectFolderLink,
-        clientWebsiteLink: data.clientWebsiteLink,
-        soldBy: data.soldBy,
-        seatCount: data.seatCount,
-        hoursAlloted: data.hoursAlloted,
-        primaryContactName: data.primaryContactName,
-        primaryContactEmail: data.primaryContactEmail,
-        linkedinLink: data.linkedinLink,
-        addOnsPurchased: data.addOnsPurchased || [],
-        milestones: [] // Milestones would be created separately
-      }
-
-      engagements.push(newEngagement)
-      this.saveEngagementsToStorage(engagements)
-
-      // Log audit trail
-      await auditService.logAction(
-        'current-user-id', // In real app, get from auth context
-        'Chris Administrator', // In real app, get from auth context
-        'create_engagement',
-        'system',
-        `Created new engagement: ${newEngagement.name} for account ${data.accountName}`,
-        newEngagement.id
-      )
-
-      return newEngagement
+      const response = await api.post<{ engagement: any }>('/engagements', data)
+      return this.transformEngagementFromAPI(response.engagement)
     } catch (error) {
       console.error('Error creating engagement:', error)
       throw new Error('Failed to create engagement')
@@ -218,35 +171,8 @@ class EngagementManagementService {
 
   async updateEngagement(id: string, data: UpdateEngagementRequest): Promise<Engagement> {
     try {
-      const engagements = this.getStoredEngagements()
-
-      const engagementIndex = engagements.findIndex(engagement => engagement.id === id)
-      if (engagementIndex === -1) {
-        throw new Error('Engagement not found')
-      }
-
-      const originalEngagement = { ...engagements[engagementIndex] }
-      const updatedEngagement = {
-        ...engagements[engagementIndex],
-        ...data
-      }
-
-      engagements[engagementIndex] = updatedEngagement
-      this.saveEngagementsToStorage(engagements)
-
-      // Log audit trail with changes
-      const changes = auditService.generateChanges(originalEngagement, updatedEngagement, ['milestones'])
-      await auditService.logAction(
-        'current-user-id', // In real app, get from auth context
-        'Chris Administrator', // In real app, get from auth context
-        'update_engagement',
-        'system',
-        `Updated engagement: ${updatedEngagement.name}`,
-        id,
-        changes
-      )
-
-      return updatedEngagement
+      const response = await api.patch<{ engagement: any }>(`/engagements/${id}`, data)
+      return this.transformEngagementFromAPI(response.engagement)
     } catch (error) {
       console.error('Error updating engagement:', error)
       throw new Error('Failed to update engagement')
@@ -255,27 +181,7 @@ class EngagementManagementService {
 
   async deleteEngagement(id: string): Promise<boolean> {
     try {
-      const engagements = this.getStoredEngagements()
-      const engagementIndex = engagements.findIndex(engagement => engagement.id === id)
-      
-      if (engagementIndex === -1) {
-        throw new Error('Engagement not found')
-      }
-
-      const engagement = engagements[engagementIndex]
-      engagements.splice(engagementIndex, 1)
-      this.saveEngagementsToStorage(engagements)
-
-      // Log audit trail
-      await auditService.logAction(
-        'current-user-id', // In real app, get from auth context
-        'Chris Administrator', // In real app, get from auth context
-        'delete_engagement',
-        'system',
-        `Deleted engagement: ${engagement.name} for account ${engagement.accountName}`,
-        id
-      )
-
+      await api.delete(`/engagements/${id}`)
       return true
     } catch (error) {
       console.error('Error deleting engagement:', error)
@@ -284,86 +190,50 @@ class EngagementManagementService {
   }
 
   async getAvailableReps(): Promise<string[]> {
-    // In a real app, this would come from a database
-    return [
-      'Dakota',
-      'Chris',
-      'Amanda',
-      'Rolando',
-      'Lisa',
-      'Steph',
-      'Josh'
-    ]
+    try {
+      const response = await api.get<string[]>('/engagements/reps')
+      return response
+    } catch (error) {
+      console.error('Error fetching available reps:', error)
+      // Fallback to default reps if API call fails
+      return [
+        'Dakota',
+        'Chris',
+        'Amanda',
+        'Rolando',
+        'Lisa',
+        'Steph',
+        'Josh'
+      ]
+    }
   }
 
-  // Default data for development/testing
-  private getDefaultEngagements(): Engagement[] {
-    return [
-      {
-        id: 'engagement-001',
-        accountName: 'TechCorp Solutions',
-        name: 'Digital Transformation Initiative',
-        status: 'IN_PROGRESS',
-        health: 'GREEN',
-        assignedRep: 'Rolando',
-        startDate: '2024-01-15',
-        closeDate: '2024-06-30',
-        salesType: 'Direct Sell',
-        speed: 'Fast',
-        crm: 'Salesforce',
-        soldBy: 'Chris',
-        seatCount: 50,
-        hoursAlloted: 120,
-        primaryContactName: 'John Smith',
-        primaryContactEmail: 'john@techcorp.com',
-        linkedinLink: 'https://linkedin.com/in/johnsmith',
-        avazaLink: 'https://avaza.com/project/001',
-        projectFolderLink: 'https://drive.google.com/folder1',
-        clientWebsiteLink: 'https://techcorp.com',
-        addOnsPurchased: ['Meet', 'Deal'],
-        milestones: []
-      },
-      {
-        id: 'engagement-002',
-        accountName: 'Global Manufacturing Inc',
-        name: 'Cloud Migration Project',
-        status: 'KICK_OFF',
-        health: 'YELLOW',
-        assignedRep: 'Amanda',
-        startDate: '2024-02-01',
-        closeDate: '2024-08-15',
-        salesType: 'Channel',
-        speed: 'Medium',
-        crm: 'Dynamics',
-        soldBy: 'Dakota',
-        seatCount: 25,
-        hoursAlloted: 80,
-        primaryContactName: 'Sarah Johnson',
-        primaryContactEmail: 'sarah@globalmanuf.com',
-        addOnsPurchased: ['Forecasting', 'Migration'],
-        milestones: []
-      },
-      {
-        id: 'engagement-003',
-        accountName: 'StartupFlow',
-        name: 'Customer Portal Redesign',
-        status: 'NEW',
-        health: 'GREEN',
-        assignedRep: 'Lisa',
-        startDate: '2024-03-01',
-        closeDate: '2024-07-01',
-        salesType: 'Greaser Sale',
-        speed: 'Slow',
-        crm: 'Hubspot',
-        soldBy: 'Steph',
-        seatCount: 10,
-        hoursAlloted: 40,
-        primaryContactName: 'Mike Chen',
-        primaryContactEmail: 'mike@startupflow.com',
-        addOnsPurchased: ['Content'],
-        milestones: []
-      }
-    ]
+  // Transform API response to match frontend Engagement interface
+  private transformEngagementFromAPI(apiEngagement: any): Engagement {
+    return {
+      id: apiEngagement.id,
+      accountName: apiEngagement.account_name || apiEngagement.accountName,
+      name: apiEngagement.name,
+      status: apiEngagement.status,
+      health: apiEngagement.health,
+      assignedRep: apiEngagement.assigned_rep || apiEngagement.assignedRep,
+      startDate: apiEngagement.start_date || apiEngagement.startDate,
+      closeDate: apiEngagement.close_date || apiEngagement.closeDate,
+      salesType: apiEngagement.sales_type || apiEngagement.salesType,
+      speed: apiEngagement.speed,
+      crm: apiEngagement.crm,
+      avazaLink: apiEngagement.avaza_link || apiEngagement.avazaLink,
+      projectFolderLink: apiEngagement.project_folder_link || apiEngagement.projectFolderLink,
+      clientWebsiteLink: apiEngagement.client_website_link || apiEngagement.clientWebsiteLink,
+      soldBy: apiEngagement.sold_by || apiEngagement.soldBy,
+      seatCount: apiEngagement.seat_count || apiEngagement.seatCount,
+      hoursAlloted: apiEngagement.hours_allocated || apiEngagement.hoursAlloted,
+      primaryContactName: apiEngagement.primary_contact_name || apiEngagement.primaryContactName,
+      primaryContactEmail: apiEngagement.primary_contact_email || apiEngagement.primaryContactEmail,
+      linkedinLink: apiEngagement.linkedin_link || apiEngagement.linkedinLink,
+      addOnsPurchased: apiEngagement.add_ons_purchased || apiEngagement.addOnsPurchased || [],
+      milestones: apiEngagement.milestones || []
+    }
   }
 }
 

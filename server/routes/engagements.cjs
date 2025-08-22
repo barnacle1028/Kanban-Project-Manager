@@ -13,6 +13,21 @@ const router = express.Router()
 // All routes require authentication
 router.use(authenticateToken)
 
+// Get available reps
+router.get('/reps', async (req, res) => {
+  try {
+    const result = await query(
+      'SELECT DISTINCT name FROM app_user WHERE role IN (\'REP\', \'MANAGER\') ORDER BY name'
+    )
+    
+    const reps = result.rows.map(row => row.name)
+    res.json(reps)
+  } catch (error) {
+    console.error('Get available reps error:', error)
+    res.status(500).json({ error: 'Failed to fetch available reps' })
+  }
+})
+
 // Get all engagements (with role-based filtering)
 router.get('/', async (req, res) => {
   try {
@@ -67,7 +82,7 @@ router.get('/', async (req, res) => {
           ELSE 0
         END as percent_complete
       FROM engagement e
-      JOIN account a ON a.id = e.account_id
+      LEFT JOIN account a ON a.id = e.account_id
       JOIN app_user owner ON owner.id = e.owner_user_id
       LEFT JOIN app_user manager ON manager.id = owner.manager_id
       LEFT JOIN engagement_milestone em ON em.engagement_id = e.id
@@ -170,14 +185,26 @@ router.get('/:engagementId',
 router.post('/',
   requireMinRole('MANAGER'),
   [
-    body('account_id').isUUID().withMessage('Valid account ID is required'),
-    body('owner_user_id').isUUID().withMessage('Valid owner user ID is required'),
+    body('accountName').trim().isLength({ min: 1, max: 255 }).withMessage('Account name is required'),
     body('name').trim().isLength({ min: 1, max: 255 }).withMessage('Name is required and must be less than 255 characters'),
     body('status').optional().isIn(['NEW', 'KICK_OFF', 'IN_PROGRESS', 'LAUNCHED', 'STALLED', 'ON_HOLD', 'CLAWED_BACK', 'COMPLETED']),
     body('health').optional().isIn(['GREEN', 'YELLOW', 'RED']),
-    body('priority').optional().isInt({ min: 1, max: 5 }).withMessage('Priority must be between 1 and 5'),
-    body('start_date').optional().isISO8601().withMessage('Start date must be valid ISO date'),
-    body('target_launch_date').optional().isISO8601().withMessage('Target launch date must be valid ISO date')
+    body('assignedRep').optional().trim(),
+    body('startDate').optional().isISO8601().withMessage('Start date must be valid ISO date'),
+    body('closeDate').optional().isISO8601().withMessage('Close date must be valid ISO date'),
+    body('salesType').optional().isIn(['Channel', 'Direct Sell', 'Greaser Sale']),
+    body('speed').optional().isIn(['Slow', 'Medium', 'Fast']),
+    body('crm').optional().isIn(['Salesforce', 'Dynamics', 'Hubspot', 'Other', 'None']),
+    body('soldBy').optional().trim(),
+    body('seatCount').optional().isInt({ min: 1 }).withMessage('Seat count must be positive'),
+    body('hoursAlloted').optional().isInt({ min: 1 }).withMessage('Hours allocated must be positive'),
+    body('primaryContactName').optional().trim(),
+    body('primaryContactEmail').optional().isEmail().withMessage('Valid email required'),
+    body('linkedinLink').optional().isURL().withMessage('Valid LinkedIn URL required'),
+    body('avazaLink').optional().isURL().withMessage('Valid Avaza URL required'),
+    body('projectFolderLink').optional().isURL().withMessage('Valid project folder URL required'),
+    body('clientWebsiteLink').optional().isURL().withMessage('Valid client website URL required'),
+    body('addOnsPurchased').optional().isArray()
   ],
   async (req, res) => {
     try {
@@ -190,47 +217,61 @@ router.post('/',
       }
 
       const {
-        account_id,
-        owner_user_id,
+        accountName,
         name,
         status = 'NEW',
         health = 'GREEN',
-        priority = 3,
-        start_date,
-        target_launch_date
+        assignedRep,
+        startDate,
+        closeDate,
+        salesType,
+        speed,
+        crm,
+        avazaLink,
+        projectFolderLink,
+        clientWebsiteLink,
+        soldBy,
+        seatCount,
+        hoursAlloted,
+        primaryContactName,
+        primaryContactEmail,
+        linkedinLink,
+        addOnsPurchased
       } = req.body
 
-      // Verify owner exists and manager can assign to them
-      if (req.user.role === 'MANAGER') {
+      // For now, set a default owner_user_id (can be enhanced to select based on assignedRep)
+      let owner_user_id = req.user.id
+      if (assignedRep) {
         const ownerCheck = await query(
-          'SELECT id, manager_id FROM app_user WHERE id = $1',
-          [owner_user_id]
+          'SELECT id FROM app_user WHERE name = $1',
+          [assignedRep]
         )
-
-        if (ownerCheck.rows.length === 0) {
-          return res.status(400).json({ error: 'Owner user not found' })
-        }
-
-        // Manager can only assign to themselves or their direct reports
-        const owner = ownerCheck.rows[0]
-        if (owner.id !== req.user.id && owner.manager_id !== req.user.id) {
-          return res.status(403).json({ error: 'Cannot assign engagement to this user' })
+        if (ownerCheck.rows.length > 0) {
+          owner_user_id = ownerCheck.rows[0].id
         }
       }
 
       // Create engagement
       const createQuery = `
         INSERT INTO engagement (
-          account_id, owner_user_id, name, status, health, priority, 
-          start_date, target_launch_date
+          owner_user_id, name, account_name, status, health, assigned_rep,
+          start_date, close_date, sales_type, speed, crm,
+          avaza_link, project_folder_link, client_website_link,
+          sold_by, seat_count, hours_allocated,
+          primary_contact_name, primary_contact_email, linkedin_link,
+          add_ons_purchased
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         RETURNING *
       `
 
       const result = await query(createQuery, [
-        account_id, owner_user_id, name, status, health, priority,
-        start_date, target_launch_date
+        owner_user_id, name, accountName, status, health, assignedRep,
+        startDate, closeDate, salesType, speed, crm,
+        avazaLink, projectFolderLink, clientWebsiteLink,
+        soldBy, seatCount, hoursAlloted,
+        primaryContactName, primaryContactEmail, linkedinLink,
+        addOnsPurchased
       ])
 
       const engagement = result.rows[0]
@@ -289,14 +330,42 @@ router.patch('/:engagementId',
       const updates = req.body
 
       // Build dynamic update query
-      const allowedFields = ['name', 'status', 'health', 'priority', 'start_date', 'target_launch_date']
+      const allowedFields = [
+        'name', 'accountName', 'status', 'health', 'assignedRep', 
+        'startDate', 'closeDate', 'salesType', 'speed', 'crm',
+        'avazaLink', 'projectFolderLink', 'clientWebsiteLink',
+        'soldBy', 'seatCount', 'hoursAlloted',
+        'primaryContactName', 'primaryContactEmail', 'linkedinLink',
+        'addOnsPurchased'
+      ]
+      
+      // Map field names to database columns
+      const fieldMap = {
+        'accountName': 'account_name',
+        'assignedRep': 'assigned_rep',
+        'startDate': 'start_date',
+        'closeDate': 'close_date',
+        'salesType': 'sales_type',
+        'avazaLink': 'avaza_link',
+        'projectFolderLink': 'project_folder_link',
+        'clientWebsiteLink': 'client_website_link',
+        'soldBy': 'sold_by',
+        'seatCount': 'seat_count',
+        'hoursAlloted': 'hours_allocated',
+        'primaryContactName': 'primary_contact_name',
+        'primaryContactEmail': 'primary_contact_email',
+        'linkedinLink': 'linkedin_link',
+        'addOnsPurchased': 'add_ons_purchased'
+      }
+      
       const setClause = []
       const params = [engagementId]
       let paramCount = 1
 
       for (const [key, value] of Object.entries(updates)) {
         if (allowedFields.includes(key) && value !== undefined) {
-          setClause.push(`${key} = $${++paramCount}`)
+          const dbField = fieldMap[key] || key
+          setClause.push(`${dbField} = $${++paramCount}`)
           params.push(value)
         }
       }
