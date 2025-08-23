@@ -92,7 +92,7 @@ class EngagementManagementService {
       const response = await api.get<{
         engagements: Engagement[]
         pagination: { total: number, limit: number, offset: number }
-      }>(`/engagements?${params}`)
+      }>(`/api/engagements?${params}`)
 
       // Transform backend response to match frontend expectations
       const transformedEngagements = response.engagements.map(this.transformEngagementFromAPI)
@@ -148,7 +148,7 @@ class EngagementManagementService {
 
   async getEngagementById(id: string): Promise<Engagement | null> {
     try {
-      const response = await api.get<any>(`/engagements/${id}`)
+      const response = await api.get<any>(`/api/engagements/${id}`)
       return this.transformEngagementFromAPI(response)
     } catch (error) {
       console.error('Error fetching engagement:', error)
@@ -171,7 +171,7 @@ class EngagementManagementService {
         console.error('Health check failed:', healthError)
       }
       
-      const response = await api.post<{ engagement: any }>('/engagements', data)
+      const response = await api.post<{ engagement: any }>('/api/engagements', data)
       return this.transformEngagementFromAPI(response.engagement)
     } catch (error: any) {
       console.error('Error creating engagement:', error)
@@ -193,7 +193,7 @@ class EngagementManagementService {
 
   async updateEngagement(id: string, data: UpdateEngagementRequest): Promise<Engagement> {
     try {
-      const response = await api.patch<{ engagement: any }>(`/engagements/${id}`, data)
+      const response = await api.patch<{ engagement: any }>(`/api/engagements/${id}`, data)
       return this.transformEngagementFromAPI(response.engagement)
     } catch (error) {
       console.error('Error updating engagement:', error)
@@ -203,7 +203,7 @@ class EngagementManagementService {
 
   async deleteEngagement(id: string): Promise<boolean> {
     try {
-      await api.delete(`/engagements/${id}`)
+      await api.delete(`/api/engagements/${id}`)
       return true
     } catch (error) {
       console.error('Error deleting engagement:', error)
@@ -214,7 +214,7 @@ class EngagementManagementService {
   async getAvailableReps(): Promise<string[]> {
     try {
       console.log('Fetching available reps from user management system...')
-      const response = await api.get<Array<{ id: string, name: string, email: string, role_type: string, dashboard_access: string }>>('/engagements/reps')
+      const response = await api.get<Array<{ id: string, name: string, email: string, role_type: string, dashboard_access: string }>>('/api/engagements/reps')
       console.log('Available reps response:', response)
       
       if (Array.isArray(response) && response.length > 0) {

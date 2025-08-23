@@ -7,7 +7,7 @@ const getApiBaseUrl = () => {
   
   // If on production domain kanbanpm.com, use api.kanbanpm.com
   if (window.location.hostname === 'kanbanpm.com') {
-    return 'https://api.kanbanpm.com/api'
+    return 'https://api.kanbanpm.com'
   }
   
   // If in production (other deployed domains), use the current domain with /api
