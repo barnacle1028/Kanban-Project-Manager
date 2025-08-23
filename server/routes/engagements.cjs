@@ -515,20 +515,20 @@ router.post('/',
         
         const createQuery = `
           INSERT INTO engagement (
-            account_id, owner_user_id, name, account_name, status, health, assigned_rep, assigned_rep_user_id,
+            name, account_name, status, health, assigned_rep,
             start_date, close_date, sales_type, speed, crm,
             avaza_link, project_folder_link, client_website_link,
-            sold_by, seat_count, hours_allocated,
+            sold_by, seat_count, hours_alloted,
             primary_contact_name, primary_contact_email, linkedin_link,
             add_ons_purchased
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
           RETURNING *
         `
 
         console.log('Executing engagement creation query...')
         const result = await query(createQuery, [
-          account_id, owner_user_id, name, accountName, status, health, assignedRep, assigned_rep_user_id,
+          name, accountName, status, health, assignedRep,
           startDate, closeDate, salesType, speed, crm,
           avazaLink, projectFolderLink, clientWebsiteLink,
           soldBy, seatCount, hoursAlloted,
