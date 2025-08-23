@@ -46,6 +46,15 @@ app.get('/env-check', (req, res) => {
   })
 })
 
+// Load the engagement routes
+try {
+  const engagementRoutes = require('./routes/engagements.cjs')
+  app.use('/api/engagements', engagementRoutes)
+  console.log('✅ Engagement routes loaded successfully')
+} catch (error) {
+  console.error('❌ Failed to load engagement routes:', error.message)
+}
+
 // Basic API endpoints for frontend
 app.get('/api/auth/captcha', (req, res) => {
   res.json({
@@ -142,7 +151,13 @@ app.get('/api', (req, res) => {
       'GET /api',
       'GET /api/auth/captcha',
       'POST /api/auth/login',
-      'POST /api/setup-database'
+      'POST /api/setup-database',
+      'GET /api/engagements',
+      'POST /api/engagements',
+      'GET /api/engagements/:id',
+      'PATCH /api/engagements/:id',
+      'DELETE /api/engagements/:id',
+      'GET /api/engagements/reps'
     ],
     timestamp: new Date().toISOString()
   })
