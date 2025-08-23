@@ -5,7 +5,12 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_BASE_URL
   }
   
-  // If in production (deployed), use the current domain with /api
+  // If on production domain kanbanpm.com, use api.kanbanpm.com
+  if (window.location.hostname === 'kanbanpm.com') {
+    return 'https://api.kanbanpm.com/api'
+  }
+  
+  // If in production (other deployed domains), use the current domain with /api
   if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     return `${window.location.protocol}//${window.location.host}/api`
   }
