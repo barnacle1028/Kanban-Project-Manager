@@ -1,7 +1,6 @@
 import React from 'react'
 import { useAuthStore } from './store/authStore'
-import { comprehensiveEngagements, getEngagementsByRep, getEngagementsByManager, getEngagementById } from './data/comprehensiveEngagements'
-import { userData, getUserByEmail, determineRoleFromEmail } from './data/userData'
+import { useEngagements, useEngagement } from './hooks/useEngagements'
 import type { EngagementWithMilestones } from './api/types'
 import UserRoleManagement from './components/admin/UserRoleManagement'
 import AdminPanel from './components/admin/AdminPanel'
@@ -13,28 +12,58 @@ import UserSettings from './components/user/UserSettings'
 function CompleteEngagementSystem({ user }: { user: any }) {
   const [selectedEngagementId, setSelectedEngagementId] = React.useState<string | null>(null)
   
-  // Get engagements based on user role
-  const engagements = React.useMemo(() => {
-    if (user.role === 'REP') {
-      return getEngagementsByRep(user.id)
-    } else if (user.role === 'MANAGER') {
-      // If Derek (manager), show his reps' engagements
-      if (user.name === 'Derek') {
-        return getEngagementsByManager(user.id)
-      }
-      // If Chris (admin), show all engagements
-      return comprehensiveEngagements
-    }
-    return []
-  }, [user.role, user.id, user.name])
+  // Get engagements based on user role using real API
+  const engagementsQuery = useEngagements(
+    user.role === 'REP' ? { userId: user.id } :
+    user.role === 'MANAGER' ? { managerId: user.id } : 
+    undefined // Admin gets all engagements
+  )
+  
+  const selectedEngagementQuery = useEngagement(selectedEngagementId || '')
+  
+  const engagements = engagementsQuery.data || []
+  const isAdmin = user.role === 'ADMIN' || user.name?.includes('Chris')
+  const selectedEngagement = selectedEngagementQuery.data
+  
+  // Loading states
+  if (engagementsQuery.isLoading) {
+    return (
+      <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '18px', color: '#253D2C' }}>Loading engagements...</div>
+        </div>
+      </div>
+    )
+  }
+  
+  // Error states
+  if (engagementsQuery.error) {
+    return (
+      <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '18px', color: '#dc3545', marginBottom: '10px' }}>Error loading engagements</div>
+          <div style={{ fontSize: '14px', color: '#6b7280' }}>{engagementsQuery.error.message}</div>
+          <button 
+            onClick={() => engagementsQuery.refetch()}
+            style={{ marginTop: '20px', padding: '10px 20px', background: '#68BA7F', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
-  const isAdmin = user.name === 'Chris'
-
-
-  const selectedEngagement = selectedEngagementId 
-    ? getEngagementById(selectedEngagementId)
-    : null
-
+  if (selectedEngagementId && selectedEngagementQuery.isLoading) {
+    return (
+      <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '18px', color: '#253D2C' }}>Loading engagement details...</div>
+        </div>
+      </div>
+    )
+  }
+  
   if (selectedEngagement) {
     return (
       <div style={{ background: '#68BA7F', minHeight: '100vh', padding: '20px' }}>
@@ -869,11 +898,10 @@ function ManagerDashboardView({ engagements, user, onSelectEngagement, isAdmin =
   }
 
   if (selectedRep && repEngagements[selectedRep]) {
-    const selectedRepUser = userData.find(u => u.name === selectedRep)
     return (
       <RepDashboardView 
         engagements={repEngagements[selectedRep]}
-        user={selectedRepUser || { name: selectedRep }}
+        user={{ name: selectedRep, role: 'REP' }}
         onSelectEngagement={onSelectEngagement}
       />
     )
@@ -920,7 +948,7 @@ function ManagerDashboardView({ engagements, user, onSelectEngagement, isAdmin =
         {isAdmin && (
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
             <h3 style={{ color: '#253D2C', margin: '0 0 10px 0' }}>System Users</h3>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2E6F40' }}>{userData.length}</div>
+            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2E6F40' }}>-</div>
           </div>
         )}
       </div>

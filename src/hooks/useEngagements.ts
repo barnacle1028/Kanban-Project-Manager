@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { engagementsApi } from '../api'
+import { supabaseEngagementsApi } from '../api/supabaseEngagements'
 import { EngagementWithMilestones, Engagement, EngagementMilestone } from '../api/types'
 
 export const ENGAGEMENT_KEYS = {
@@ -15,12 +15,12 @@ export function useEngagements(filters?: { userId?: string; managerId?: string }
     queryKey: ENGAGEMENT_KEYS.list(filters),
     queryFn: () => {
       if (filters?.userId) {
-        return engagementsApi.getByUser(filters.userId)
+        return supabaseEngagementsApi.getByUser(filters.userId)
       }
       if (filters?.managerId) {
-        return engagementsApi.getByManager(filters.managerId)
+        return supabaseEngagementsApi.getByManager(filters.managerId)
       }
-      return engagementsApi.getAll()
+      return supabaseEngagementsApi.getAll()
     },
   })
 }
@@ -28,7 +28,7 @@ export function useEngagements(filters?: { userId?: string; managerId?: string }
 export function useEngagement(id: string) {
   return useQuery({
     queryKey: ENGAGEMENT_KEYS.detail(id),
-    queryFn: () => engagementsApi.getById(id),
+    queryFn: () => supabaseEngagementsApi.getById(id),
     enabled: !!id,
   })
 }
@@ -37,7 +37,7 @@ export function useCreateEngagement() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: engagementsApi.create,
+    mutationFn: supabaseEngagementsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ENGAGEMENT_KEYS.lists() })
     },
@@ -49,7 +49,7 @@ export function useUpdateEngagement() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Engagement> }) =>
-      engagementsApi.update(id, data),
+      supabaseEngagementsApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ENGAGEMENT_KEYS.detail(id) })
       queryClient.invalidateQueries({ queryKey: ENGAGEMENT_KEYS.lists() })
@@ -62,7 +62,7 @@ export function useUpdateEngagementStatus() {
 
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: Engagement['status'] }) =>
-      engagementsApi.updateStatus(id, status),
+      supabaseEngagementsApi.update(id, { status }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ENGAGEMENT_KEYS.detail(id) })
       queryClient.invalidateQueries({ queryKey: ENGAGEMENT_KEYS.lists() })
@@ -82,7 +82,7 @@ export function useUpdateMilestoneStage() {
       engagementId: string
       milestoneId: string
       stage: EngagementMilestone['stage'] 
-    }) => engagementsApi.milestones.updateStage(engagementId, milestoneId, stage),
+    }) => supabaseEngagementsApi.milestones.updateStage(engagementId, milestoneId, stage),
     onSuccess: (_, { engagementId }) => {
       queryClient.invalidateQueries({ queryKey: ENGAGEMENT_KEYS.detail(engagementId) })
       queryClient.invalidateQueries({ queryKey: ENGAGEMENT_KEYS.lists() })
