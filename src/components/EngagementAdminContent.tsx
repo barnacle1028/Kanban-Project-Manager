@@ -107,11 +107,23 @@ export default function EngagementAdminContent({
   const [activeUsers, setActiveUsers] = useState<UserWithRole[]>([])
 
   // Fetch engagement types
-  const { data: engagementTypes = [], isLoading: engagementTypesLoading } = useQuery({
+  const { data: engagementTypes = [], isLoading: engagementTypesLoading, error: engagementTypesError } = useQuery({
     queryKey: ['engagement-types'],
     queryFn: engagementTypesApi.getAll,
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
+
+  // Debug logging for engagement types
+  useEffect(() => {
+    console.log('📊 Engagement Types Query Status:')
+    console.log('   Loading:', engagementTypesLoading)
+    console.log('   Error:', engagementTypesError?.message || 'None')
+    console.log('   Data:', engagementTypes?.length || 0, 'types loaded')
+    
+    if (engagementTypes && engagementTypes.length > 0) {
+      console.log('   First few types:', engagementTypes.slice(0, 3).map(t => t.name))
+    }
+  }, [engagementTypesLoading, engagementTypesError, engagementTypes])
 
   // Initialize engagement types on first load
   useEffect(() => {

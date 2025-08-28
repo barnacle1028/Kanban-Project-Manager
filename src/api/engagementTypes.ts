@@ -13,6 +13,8 @@ export interface EngagementType {
 
 export const engagementTypesApi = {
   async getAll(): Promise<EngagementType[]> {
+    console.log('🔍 Fetching engagement types from Supabase table: engagement_types')
+    
     const { data, error } = await supabase
       .from('engagement_types')
       .select('*')
@@ -20,7 +22,16 @@ export const engagementTypesApi = {
       .order('sort_order')
 
     if (error) {
+      console.error('❌ Failed to fetch engagement types:', error)
+      console.error('   Error code:', error.code)
+      console.error('   Error details:', error.details)
+      console.error('   Error hint:', error.hint)
       throw new Error(`Failed to fetch engagement types: ${error.message}`)
+    }
+
+    console.log('✅ Successfully fetched engagement types:', data?.length || 0, 'records')
+    if (data && data.length > 0) {
+      console.log('   Sample types:', data.slice(0, 3).map(t => t.name))
     }
 
     return data || []
@@ -89,6 +100,8 @@ export const engagementTypesApi = {
   },
 
   async initializeTypes(): Promise<void> {
+    console.log('🚀 Initializing engagement types in Supabase...')
+    
     const predefinedTypes = [
       { name: 'Quick Start 4-Hour', description: 'Quick Start engagement with 4 hour scope', default_duration_hours: 4, sort_order: 1 },
       { name: 'Quick Start 10-Hour', description: 'Quick Start engagement with 10 hour scope', default_duration_hours: 10, sort_order: 2 },
@@ -146,7 +159,11 @@ export const engagementTypesApi = {
       })
 
     if (error) {
+      console.error('❌ Failed to initialize engagement types:', error)
+      console.error('   This likely means the engagement_types table does not exist in Supabase')
       throw new Error(`Failed to initialize engagement types: ${error.message}`)
     }
+
+    console.log('✅ Successfully initialized', formattedTypes.length, 'engagement types in Supabase')
   }
 }
