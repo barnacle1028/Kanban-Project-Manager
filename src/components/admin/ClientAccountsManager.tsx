@@ -202,19 +202,15 @@ const ClientAccountsManager: React.FC = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Client Accounts</h1>
           <div className="flex items-center gap-3">
-            {/* TINY SEARCH BOX */}
-            <div className="relative">
+            {/* SEARCH BOX - NO ICON */}
+            <div>
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search accounts..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 pl-8 pr-4 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-64 px-4 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
-              {/* TINY SEARCH ICON - NOT GIANT */}
-              <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-              </svg>
             </div>
             <button
               onClick={handleCreateAccount}
