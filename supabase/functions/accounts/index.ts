@@ -26,17 +26,28 @@ serve(async (req) => {
     )
 
     const url = new URL(req.url)
-    const pathParts = url.pathname.split('/').filter(part => part)
-    const method = req.method
+    let method = req.method
+    let requestBody = null
     
-    // Extract account ID if present in path
-    const accountId = pathParts.length > 0 ? pathParts[pathParts.length - 1] : null
+    // Parse request body if present
+    if (req.method === 'POST' && req.body) {
+      requestBody = await req.json()
+      // Handle method override for PATCH/DELETE via POST
+      if (requestBody._method) {
+        method = requestBody._method
+        delete requestBody._method
+      }
+    }
+    
+    // Extract account ID from body or path
+    const pathParts = url.pathname.split('/').filter(part => part)
+    const accountId = requestBody?.id || requestBody?.path?.replace('/', '') || (pathParts.length > 0 ? pathParts[pathParts.length - 1] : null)
 
     switch (method) {
       case 'GET':
-        if (url.searchParams.has('q')) {
+        if (url.searchParams.has('q') || requestBody?.q) {
           // Search accounts
-          const query = url.searchParams.get('q')
+          const query = url.searchParams.get('q') || requestBody?.q
           if (!query || query.trim() === '') {
             return new Response(
               JSON.stringify({ error: 'Search query is required' }),
@@ -104,7 +115,7 @@ serve(async (req) => {
 
       case 'POST':
         // Create new account
-        const createData = await req.json()
+        const createData = requestBody || await req.json()
         const { name, segment, region } = createData
 
         if (!name || name.trim() === '') {
@@ -149,7 +160,7 @@ serve(async (req) => {
           )
         }
 
-        const updateData = await req.json()
+        const updateData = requestBody || await req.json()
         const updates: any = {}
 
         if (updateData.name !== undefined) {

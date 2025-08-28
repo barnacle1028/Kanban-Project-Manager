@@ -197,28 +197,28 @@ const AccountManagement: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      {/* Compact Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Client Accounts</h1>
+      {/* Compact Header - UPDATED DESIGN */}
+      <div className="flex justify-between items-center mb-4 bg-gray-50 p-4 rounded-lg">
+        <h1 className="text-xl font-bold text-teal-700">🏢 Client Accounts</h1>
         <div className="flex items-center space-x-3">
-          {/* Compact Search */}
+          {/* Compact Search - TINY ICON */}
           <div className="relative">
             <input
               type="text"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-48 px-3 py-1.5 pl-7 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500"
+              className="w-40 px-2 py-1 pl-6 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500"
             />
-            <svg className="absolute left-2 top-2 h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg className="absolute left-1.5 top-1.5 h-2.5 w-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
           <button
             onClick={handleCreateAccount}
-            className="px-4 py-1.5 bg-teal-600 text-white text-sm rounded hover:bg-teal-700 transition-colors"
+            className="px-3 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 transition-colors font-medium"
           >
-            + New Account
+            ➕ Add Account
           </button>
         </div>
       </div>
