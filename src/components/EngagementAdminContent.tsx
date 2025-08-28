@@ -3,6 +3,8 @@ import type { Engagement, Rep, ProjectStatus, SalesType, Speed, CRM, AddOn } fro
 import type { UserWithRole } from '../types/userManagement'
 import { createStandardMilestones } from '../utils/standardMilestones'
 import { userManagementService } from '../api/userManagement'
+import { engagementTypesApi, type EngagementType } from '../api/engagementTypes'
+import { useQuery } from '@tanstack/react-query'
 
 type SortOption = {
   column: string
@@ -103,6 +105,25 @@ export default function EngagementAdminContent({
   const [sortConfig, setSortConfig] = useState<SortOption>({ column: '', direction: 'none' })
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'ALL'>('ALL')
   const [activeUsers, setActiveUsers] = useState<UserWithRole[]>([])
+
+  // Fetch engagement types
+  const { data: engagementTypes = [], isLoading: engagementTypesLoading } = useQuery({
+    queryKey: ['engagement-types'],
+    queryFn: engagementTypesApi.getAll,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  // Initialize engagement types on first load
+  useEffect(() => {
+    const initializeTypes = async () => {
+      try {
+        await engagementTypesApi.initializeTypes()
+      } catch (error) {
+        console.warn('Engagement types already initialized or error:', error)
+      }
+    }
+    initializeTypes()
+  }, [])
   const [formData, setFormData] = useState({
     name: '',
     accountName: '',
@@ -113,6 +134,7 @@ export default function EngagementAdminContent({
     salesType: 'Direct Sell' as SalesType,
     speed: 'Medium' as Speed,
     crm: 'Salesforce' as CRM,
+    engagementType: '',
     soldBy: '',
     seatCount: 0,
     hoursAlloted: 0,
@@ -155,6 +177,7 @@ export default function EngagementAdminContent({
         salesType: 'Direct Sell',
         speed: 'Medium',
         crm: 'Salesforce',
+        engagementType: '',
         soldBy: '',
         seatCount: 0,
         hoursAlloted: 0,
@@ -183,6 +206,7 @@ export default function EngagementAdminContent({
       salesType: 'Direct Sell',
       speed: 'Medium',
       crm: 'Salesforce',
+      engagementType: '',
       soldBy: '',
       seatCount: 0,
       hoursAlloted: 0,
@@ -501,6 +525,40 @@ export default function EngagementAdminContent({
                 >
                   {STATUS_OPTIONS.map(status => (
                     <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: '#253D2C',
+                  marginBottom: '4px',
+                  fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                }}>
+                  Engagement Type
+                </label>
+                <select
+                  value={formData.engagementType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, engagementType: e.target.value }))}
+                  disabled={engagementTypesLoading}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    fontSize: '14px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif',
+                    opacity: engagementTypesLoading ? 0.6 : 1
+                  }}
+                >
+                  <option value="">Select Engagement Type</option>
+                  {engagementTypes.map(type => (
+                    <option key={type.id} value={type.name}>
+                      {type.name} {type.default_duration_hours ? `(${type.default_duration_hours}h)` : ''}
+                    </option>
                   ))}
                 </select>
               </div>

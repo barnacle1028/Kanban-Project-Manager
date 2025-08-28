@@ -53,6 +53,7 @@ export interface Engagement {
   salesType?: SalesType
   speed?: Speed
   crm?: CRM
+  engagementType?: string
   avazaLink?: string
   projectFolderLink?: string
   clientWebsiteLink?: string

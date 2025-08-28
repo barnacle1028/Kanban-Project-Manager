@@ -6,9 +6,6 @@ import { userManagementService } from '../../api/userManagement'
 import { userRoleService } from '../../api/userRoles'
 import { auditService } from '../../services/auditService'
 import type { AuditLog, AuditLogFilter } from '../../services/auditService'
-import { engagementManagementService } from '../../services/engagementManagementService'
-import type { Engagement, CreateEngagementRequest, UpdateEngagementRequest, EngagementFilter } from '../../services/engagementManagementService'
-import type { Speed, CRM, SalesType, AddOn, ProjectStatus } from '../../types'
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('settings')
@@ -62,8 +59,6 @@ function SettingsPanel() {
         {[
           { id: 'userRoles', label: 'User Roles' },
           { id: 'userManagement', label: 'User Management' },
-          { id: 'engagementManagement', label: 'Engagement Management' },
-          { id: 'engagementTypes', label: 'Engagement Types' },
           { id: 'orgSettings', label: 'Organization Settings' }
         ].map(tab => (
           <button
@@ -89,8 +84,6 @@ function SettingsPanel() {
       <div>
         {activeSettingsTab === 'userRoles' && <UserRolesSettings />}
         {activeSettingsTab === 'userManagement' && <UserManagementWrapper />}
-        {activeSettingsTab === 'engagementManagement' && <EngagementManagementSettings />}
-        {activeSettingsTab === 'engagementTypes' && <EngagementTypesSettings />}
         {activeSettingsTab === 'orgSettings' && <OrganizationSettings />}
       </div>
     </div>
@@ -98,483 +91,29 @@ function SettingsPanel() {
 }
 
 function UserRolesSettings() {
-  return <UserRoleManagement />
+  return <UserRoleManagement onClose={() => {}} />
 }
 
 function UserManagementWrapper() {
-  // Create a non-modal version for the Settings panel
-  return (
-    <div style={{ padding: '0' }}>
-      <NonModalUserManagement />
-    </div>
-  )
+  return <ComprehensiveUserManagement />
 }
 
 function SimpleUserManagement() {
-  const { data: users, isLoading, error } = useUsers()
+  const { users, isLoading, error } = useUsers()
 
-  if (isLoading) {
-    return <div>Loading users...</div>
-  }
-
-  if (error) {
-    return <div style={{ color: '#dc2626' }}>Error loading users: {error.message}</div>
-  }
+  if (isLoading) return <div>Loading users...</div>
+  if (error) return <div>Error loading users: {error.message}</div>
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h4 style={{ margin: 0 }}>User Management</h4>
-        <button style={{
-          background: '#4f46e5',
-          color: 'white',
-          border: 'none',
-          padding: '8px 16px',
-          borderRadius: '6px',
-          cursor: 'pointer'
-        }}>
-          Add New User
-        </button>
-      </div>
-
-      <div style={{
-        background: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        overflow: 'hidden'
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-            <tr>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Name</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Email</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Role</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Status</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users?.map(user => (
-              <tr key={user.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '12px' }}>{user.name}</td>
-                <td style={{ padding: '12px' }}>{user.email}</td>
-                <td style={{ padding: '12px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    background: user.role === 'EXECUTIVE' ? '#fef2f2' : user.role === 'MANAGER' ? '#f0f9ff' : '#f0fdf4',
-                    color: user.role === 'EXECUTIVE' ? '#dc2626' : user.role === 'MANAGER' ? '#0369a1' : '#16a34a'
-                  }}>
-                    {user.role}
-                  </span>
-                </td>
-                <td style={{ padding: '12px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    background: '#f0fdf4',
-                    color: '#16a34a'
-                  }}>
-                    Active
-                  </span>
-                </td>
-                <td style={{ padding: '12px' }}>
-                  <button style={{
-                    background: 'none',
-                    border: '1px solid #d1d5db',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    marginRight: '8px',
-                    fontSize: '12px'
-                  }}>
-                    Edit
-                  </button>
-                  <button style={{
-                    background: 'none',
-                    border: '1px solid #dc2626',
-                    color: '#dc2626',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}>
-                    Disable
-                  </button>
-                </td>
-              </tr>
-            )) || (
-              <tr>
-                <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-                  No users found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-function EngagementManagementSettings() {
-  const [engagements, setEngagements] = useState<Engagement[]>([])
-  const [availableReps, setAvailableReps] = useState<string[]>([])
-  const [activeUsers, setActiveUsers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filter, setFilter] = useState<EngagementFilter>({})
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedEngagement, setSelectedEngagement] = useState<Engagement | null>(null)
-
-  useEffect(() => {
-    loadData()
-  }, [searchTerm, filter])
-
-  // Load active users on component mount
-  useEffect(() => {
-    const loadActiveUsers = async () => {
-      try {
-        const response = await userManagementService.getAllUsers({ is_active: true })
-        setActiveUsers(response.users)
-      } catch (error) {
-        console.error('Error loading active users:', error)
-      }
-    }
-    loadActiveUsers()
-  }, [])
-
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      const [engagementsResponse, repsResponse] = await Promise.all([
-        engagementManagementService.getAllEngagements({ 
-          ...filter, 
-          search: searchTerm 
-        }, { 
-          field: 'id', 
-          direction: 'desc' 
-        }, 1, 50),
-        engagementManagementService.getAvailableReps()
-      ])
-      setEngagements(engagementsResponse.engagements || [])
-      setAvailableReps(repsResponse || [])
-    } catch (error) {
-      console.error('Failed to load engagement data:', error)
-      setEngagements([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleCreateEngagement = async (data: CreateEngagementRequest) => {
-    try {
-      await engagementManagementService.createEngagement(data)
-      setShowCreateModal(false)
-      loadData()
-    } catch (error) {
-      console.error('Failed to create engagement:', error)
-      alert('Failed to create engagement: ' + (error instanceof Error ? error.message : 'Unknown error'))
-    }
-  }
-
-  const handleEditEngagement = (engagement: Engagement) => {
-    setSelectedEngagement(engagement)
-    setShowEditModal(true)
-  }
-
-  const handleUpdateEngagement = async (id: string, data: UpdateEngagementRequest) => {
-    try {
-      await engagementManagementService.updateEngagement(id, data)
-      setShowEditModal(false)
-      setSelectedEngagement(null)
-      loadData()
-    } catch (error) {
-      console.error('Failed to update engagement:', error)
-      alert('Failed to update engagement: ' + (error instanceof Error ? error.message : 'Unknown error'))
-    }
-  }
-
-  const handleDeleteEngagement = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete engagement "${name}"?`)) {
-      try {
-        await engagementManagementService.deleteEngagement(id)
-        loadData()
-      } catch (error) {
-        console.error('Failed to delete engagement:', error)
-        alert('Failed to delete engagement: ' + (error instanceof Error ? error.message : 'Unknown error'))
-      }
-    }
-  }
-
-  const getStatusColor = (status: Engagement['status']) => {
-    switch (status) {
-      case 'NEW': return { background: '#f3f4f6', color: '#374151' }
-      case 'KICK_OFF': return { background: '#ddd6fe', color: '#5b21b6' }
-      case 'IN_PROGRESS': return { background: '#bfdbfe', color: '#1e40af' }
-      case 'LAUNCHED': return { background: '#d1fae5', color: '#065f46' }
-      case 'STALLED': return { background: '#fef3c7', color: '#92400e' }
-      case 'ON_HOLD': return { background: '#fed7d7', color: '#c53030' }
-      case 'CLAWED_BACK': return { background: '#fee2e2', color: '#991b1b' }
-      case 'COMPLETED': return { background: '#d1fae5', color: '#065f46' }
-      default: return { background: '#f3f4f6', color: '#374151' }
-    }
-  }
-
-  const getHealthColor = (health: Engagement['health']) => {
-    switch (health) {
-      case 'GREEN': return { background: '#d1fae5', color: '#065f46' }
-      case 'YELLOW': return { background: '#fef3c7', color: '#92400e' }
-      case 'RED': return { background: '#fee2e2', color: '#991b1b' }
-      default: return { background: '#f3f4f6', color: '#374151' }
-    }
-  }
-
-  if (loading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading engagements...</div>
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>Engagement Management</h4>
-          <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-            Manage all customer engagements and their lifecycle
-          </p>
-        </div>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          style={{
-            background: '#4f46e5',
-            color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          + Add New Engagement
-        </button>
-      </div>
-
-      {/* Search and Filter */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder="Search engagements..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            flex: 1,
-            minWidth: '200px',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}
-        />
-        <select
-          value={filter.status || ''}
-          onChange={(e) => setFilter({ ...filter, status: e.target.value as Engagement['status'] || undefined })}
-          style={{
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="">All Status</option>
-          <option value="NEW">New</option>
-          <option value="KICK_OFF">Kick Off</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="LAUNCHED">Launched</option>
-          <option value="STALLED">Stalled</option>
-          <option value="ON_HOLD">On Hold</option>
-          <option value="CLAWED_BACK">Clawed Back</option>
-          <option value="COMPLETED">Completed</option>
-        </select>
-        <select
-          value={filter.health || ''}
-          onChange={(e) => setFilter({ ...filter, health: e.target.value as Engagement['health'] || undefined })}
-          style={{
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="">All Health</option>
-          <option value="GREEN">Green</option>
-          <option value="YELLOW">Yellow</option>
-          <option value="RED">Red</option>
-        </select>
-        <select
-          value={filter.assignedRep || ''}
-          onChange={(e) => setFilter({ ...filter, assignedRep: e.target.value || undefined })}
-          style={{
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="">All Assigned Reps</option>
-          {activeUsers.map(user => (
-            <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
-              {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Engagements Table */}
-      <div style={{
-        background: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        overflow: 'hidden'
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: '#f9fafb' }}>
-            <tr>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Name</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Account</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Assigned Rep</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Status</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Health</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Close Date</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {engagements.length > 0 ? engagements.map(engagement => (
-              <tr key={engagement.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '12px', fontSize: '14px', fontWeight: '500' }}>
-                  {engagement.name}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  {engagement.accountName}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  {engagement.assignedRep || '-'}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    ...getStatusColor(engagement.status)
-                  }}>
-                    {engagement.status.replace('_', ' ')}
-                  </span>
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    ...getHealthColor(engagement.health)
-                  }}>
-                    {engagement.health}
-                  </span>
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  {engagement.closeDate ? new Date(engagement.closeDate).toLocaleDateString() : '-'}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      onClick={() => handleEditEngagement(engagement)}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '4px',
-                        background: 'white',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteEngagement(engagement.id, engagement.name)}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '12px',
-                        border: '1px solid #dc2626',
-                        borderRadius: '4px',
-                        background: 'white',
-                        color: '#dc2626',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                  {searchTerm || Object.keys(filter).length > 0 ? 'No engagements match your criteria' : 'No engagements found'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Create Engagement Modal */}
-      {showCreateModal && (
-        <CreateEngagementModal 
-          availableReps={availableReps}
-          onSave={handleCreateEngagement}
-          onClose={() => setShowCreateModal(false)}
-        />
-      )}
-
-      {/* Edit Engagement Modal */}
-      {showEditModal && selectedEngagement && (
-        <EditEngagementModal 
-          engagement={selectedEngagement}
-          availableReps={availableReps}
-          onSave={handleUpdateEngagement}
-          onClose={() => {
-            setShowEditModal(false)
-            setSelectedEngagement(null)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-function EngagementTypesSettings() {
-  return (
-    <div>
-      <h4>Engagement Types</h4>
-      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-        Define and manage different types of engagements and their properties.
-      </p>
-      <div style={{ 
-        background: '#f9fafb', 
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        padding: '20px',
-        textAlign: 'center',
-        color: '#6b7280'
-      }}>
-        Engagement types configuration would be implemented here.
+      <h4>Users ({users.length})</h4>
+      <div style={{ display: 'grid', gap: '8px' }}>
+        {users.map(user => (
+          <div key={user.id} style={{ padding: '12px', background: '#f9fafb', borderRadius: '4px' }}>
+            <div style={{ fontWeight: '500' }}>{user.first_name} {user.last_name}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>{user.email} • {user.user_role?.name || 'No Role'}</div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -595,7 +134,7 @@ function OrganizationSettings() {
         textAlign: 'center',
         color: '#6b7280'
       }}>
-        Organization settings configuration would be implemented here.
+        Organization settings configuration will be implemented here.
       </div>
     </div>
   )
@@ -605,74 +144,123 @@ function NonModalUserManagement() {
   const [users, setUsers] = useState([])
   const [userRoles, setUserRoles] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filter, setFilter] = useState({})
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedUser, setSelectedUser] = useState(null)
+  const [error, setError] = useState('')
+  const [editingUser, setEditingUser] = useState(null)
+
+  // Form state
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    user_role_id: '',
+    job_title: '',
+    department: '',
+    manager_id: '',
+    employment_type: 'full_time',
+    start_date: '',
+    is_active: true,
+    must_change_password: false
+  })
 
   useEffect(() => {
     loadData()
-  }, [searchTerm, filter])
+  }, [])
 
   const loadData = async () => {
     try {
       setLoading(true)
       const [usersResponse, rolesResponse] = await Promise.all([
-        userManagementService.getAllUsers({ 
-          ...filter, 
-          search: searchTerm 
-        }, { 
-          field: 'created_at', 
-          direction: 'desc' 
-        }, 1, 50),
-        userRoleService.getAllUserRoles()
+        userManagementService.getAllUsers(),
+        userRoleService.getAllRoles()
       ])
+      
       setUsers(usersResponse.users || [])
-      setUserRoles(rolesResponse || [])
-    } catch (error) {
-      console.error('Failed to load data:', error)
-      setUsers([])
+      setUserRoles(rolesResponse.roles || [])
+    } catch (err) {
+      setError(err.message || 'Failed to load data')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEditUser = (user) => {
-    setSelectedUser(user)
-    setShowEditModal(true)
-  }
-
-  const handleUpdateUser = async (userId, userData) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
     try {
-      const result = await userManagementService.updateUser(userId, userData)
-      setShowEditModal(false)
-      setSelectedUser(null)
-      loadData()
-    } catch (error) {
-      console.error('Failed to update user:', error)
+      if (editingUser) {
+        await userManagementService.updateUser(editingUser.id, formData)
+      } else {
+        await userManagementService.createUser(formData)
+      }
+      
+      // Reset form and reload data
+      setFormData({
+        first_name: '',
+        last_name: '',
+        email: '',
+        password: '',
+        user_role_id: '',
+        job_title: '',
+        department: '',
+        manager_id: '',
+        employment_type: 'full_time',
+        start_date: '',
+        is_active: true,
+        must_change_password: false
+      })
+      setEditingUser(null)
+      await loadData()
+    } catch (err) {
+      setError(err.message || 'Failed to save user')
     }
   }
 
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+  const handleEdit = (user) => {
+    setEditingUser(user)
+    setFormData({
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      email: user.email || '',
+      password: '', // Don't pre-fill password
+      user_role_id: user.user_role_id || '',
+      job_title: user.job_title || '',
+      department: user.department || '',
+      manager_id: user.manager_id || '',
+      employment_type: user.employment_type || 'full_time',
+      start_date: user.start_date || '',
+      is_active: user.is_active !== false,
+      must_change_password: user.must_change_password || false
+    })
+  }
+
+  const handleDelete = async (userId, userName) => {
+    if (window.confirm(`Are you sure you want to delete user "${userName}"?`)) {
       try {
         await userManagementService.deleteUser(userId)
-        loadData()
-      } catch (error) {
-        console.error('Failed to delete user:', error)
+        await loadData()
+      } catch (err) {
+        setError(err.message || 'Failed to delete user')
       }
     }
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return { background: '#d1fae5', color: '#065f46' }
-      case 'inactive': return { background: '#f3f4f6', color: '#374151' }
-      case 'pending': return { background: '#fef3c7', color: '#92400e' }
-      case 'suspended': return { background: '#fee2e2', color: '#991b1b' }
-      default: return { background: '#f3f4f6', color: '#374151' }
-    }
+  const handleCancel = () => {
+    setEditingUser(null)
+    setFormData({
+      first_name: '',
+      last_name: '',
+      email: '',
+      password: '',
+      user_role_id: '',
+      job_title: '',
+      department: '',
+      manager_id: '',
+      employment_type: 'full_time',
+      start_date: '',
+      is_active: true,
+      must_change_password: false
+    })
   }
 
   if (loading) {
@@ -680,205 +268,297 @@ function NonModalUserManagement() {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>User Management</h4>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          style={{
-            background: '#4f46e5',
-            color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          + Add New User
-        </button>
-      </div>
+    <div style={{ padding: '20px' }}>
+      <div style={{ marginBottom: '30px' }}>
+        <h3 style={{ margin: '0 0 10px 0' }}>
+          {editingUser ? `Edit User: ${editingUser.first_name} ${editingUser.last_name}` : 'Create New User'}
+        </h3>
 
-      {/* Search and Filter */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}
-        />
-        <select
-          value={filter.status || ''}
-          onChange={(e) => setFilter({ ...filter, status: e.target.value || undefined })}
-          style={{
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="pending">Pending</option>
-          <option value="suspended">Suspended</option>
-        </select>
-      </div>
-
-      {/* Users Table */}
-      <div style={{
-        background: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        overflow: 'hidden'
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: '#f9fafb' }}>
-            <tr>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Name</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Email</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Role</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Status</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Created</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.length > 0 ? users.map(user => (
-              <tr key={user.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  {user.first_name} {user.last_name}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>{user.email}</td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  {user.user_role?.name || 'No Role'}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    ...getStatusColor(user.status)
-                  }}>
-                    {user.status}
-                  </span>
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  {new Date(user.created_at).toLocaleDateString()}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      onClick={() => handleEditUser(user)}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '4px',
-                        background: 'white',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteUser(user.id)}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '12px',
-                        border: '1px solid #dc2626',
-                        borderRadius: '4px',
-                        background: 'white',
-                        color: '#dc2626',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                  {searchTerm || filter.status ? 'No users match your search criteria' : 'No users found'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {showCreateModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            width: '90%',
-            maxWidth: '500px'
+        {error && (
+          <div style={{ 
+            background: '#fee2e2', 
+            color: '#dc2626', 
+            padding: '12px', 
+            borderRadius: '6px', 
+            marginBottom: '20px' 
           }}>
-            <h3>Create New User</h3>
-            <p>User creation form would go here...</p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
-              <button 
-                onClick={() => setShowCreateModal(false)}
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ 
+          background: '#f9fafb', 
+          padding: '20px', 
+          borderRadius: '8px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '16px'
+        }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              First Name *
+            </label>
+            <input
+              type="text"
+              value={formData.first_name}
+              onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+              required
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Last Name *
+            </label>
+            <input
+              type="text"
+              value={formData.last_name}
+              onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+              required
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Email *
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              required
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              {editingUser ? 'New Password (leave blank to keep current)' : 'Password *'}
+            </label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              required={!editingUser}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Role
+            </label>
+            <select
+              value={formData.user_role_id}
+              onChange={(e) => setFormData(prev => ({ ...prev, user_role_id: e.target.value }))}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            >
+              <option value="">Select Role</option>
+              {userRoles.map(role => (
+                <option key={role.id} value={role.id}>{role.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Job Title
+            </label>
+            <input
+              type="text"
+              value={formData.job_title}
+              onChange={(e) => setFormData(prev => ({ ...prev, job_title: e.target.value }))}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Department
+            </label>
+            <input
+              type="text"
+              value={formData.department}
+              onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Employment Type
+            </label>
+            <select
+              value={formData.employment_type}
+              onChange={(e) => setFormData(prev => ({ ...prev, employment_type: e.target.value }))}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            >
+              <option value="full_time">Full Time</option>
+              <option value="part_time">Part Time</option>
+              <option value="contract">Contract</option>
+              <option value="intern">Intern</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={formData.start_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+              />
+              Active User
+            </label>
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                checked={formData.must_change_password}
+                onChange={(e) => setFormData(prev => ({ ...prev, must_change_password: e.target.checked }))}
+              />
+              Must Change Password on Next Login
+            </label>
+          </div>
+
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            {editingUser && (
+              <button
+                type="button"
+                onClick={handleCancel}
                 style={{
-                  padding: '8px 16px',
-                  border: '1px solid #d1d5db',
+                  padding: '10px 20px',
+                  background: '#6b7280',
+                  color: 'white',
+                  border: 'none',
                   borderRadius: '6px',
-                  background: 'white',
                   cursor: 'pointer'
                 }}
               >
                 Cancel
               </button>
-              <button style={{
-                padding: '8px 16px',
+            )}
+            <button
+              type="submit"
+              style={{
+                padding: '10px 20px',
                 background: '#4f46e5',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer'
-              }}>
-                Create User
-              </button>
-            </div>
+              }}
+            >
+              {editingUser ? 'Update User' : 'Create User'}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </div>
 
-      {showEditModal && selectedUser && (
-        <EditUserModal 
-          user={selectedUser}
-          userRoles={userRoles}
-          onSave={handleUpdateUser}
-          onClose={() => {
-            setShowEditModal(false)
-            setSelectedUser(null)
-          }}
-        />
-      )}
+      {/* Users List */}
+      <div>
+        <h3>Existing Users ({users.length})</h3>
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '8px', 
+          overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: '#f9fafb' }}>
+              <tr>
+                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Name</th>
+                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Email</th>
+                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Role</th>
+                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Status</th>
+                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user, index) => (
+                <tr key={user.id} style={{ borderBottom: index < users.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                  <td style={{ padding: '12px' }}>
+                    <div>
+                      <div style={{ fontWeight: '500' }}>{user.first_name} {user.last_name}</div>
+                      {user.job_title && <div style={{ fontSize: '12px', color: '#6b7280' }}>{user.job_title}</div>}
+                    </div>
+                  </td>
+                  <td style={{ padding: '12px', color: '#374151' }}>{user.email}</td>
+                  <td style={{ padding: '12px' }}>
+                    <span style={{
+                      background: '#dbeafe',
+                      color: '#1d4ed8',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {user.user_role?.name || 'No Role'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <span style={{
+                      background: user.is_active ? '#d1fae5' : '#fee2e2',
+                      color: user.is_active ? '#065f46' : '#dc2626',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {user.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => handleEdit(user)}
+                        style={{
+                          padding: '4px 8px',
+                          background: '#4f46e5',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user.id, `${user.first_name} ${user.last_name}`)}
+                        style={{
+                          padding: '4px 8px',
+                          background: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }
@@ -886,334 +566,170 @@ function NonModalUserManagement() {
 function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<AuditLogFilter>({})
-  const [searchTerm, setSearchTerm] = useState('')
-
+  
   useEffect(() => {
-    loadAuditLogs()
-  }, [filter, searchTerm])
-
-  const loadAuditLogs = async () => {
+    loadLogs()
+  }, [filter])
+  
+  const loadLogs = async () => {
     try {
       setLoading(true)
-      let auditFilter = { ...filter }
-      
-      // Add search term to filter
-      if (searchTerm) {
-        auditFilter.action = searchTerm
-      }
-      
-      const auditLogs = await auditService.getAuditLogs(auditFilter)
-      setLogs(auditLogs)
-    } catch (error) {
-      console.error('Failed to load audit logs:', error)
-      setLogs([])
+      const response = await auditService.getAuditLogs(filter)
+      setLogs(response.logs)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load audit logs')
     } finally {
       setLoading(false)
     }
   }
-
-  const handleFilterChange = (field: keyof AuditLogFilter, value: string) => {
-    setFilter(prev => ({
-      ...prev,
-      [field]: value || undefined
-    }))
-  }
-
-  const handleLast24Hours = async () => {
-    try {
-      setLoading(true)
-      const logs24h = await auditService.getLogsFromLast24Hours()
-      setLogs(logs24h)
-      setFilter({}) // Clear other filters
-      setSearchTerm('')
-    } catch (error) {
-      console.error('Failed to load last 24 hours logs:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDownloadCSV = () => {
-    const filename = `audit_logs_${filter.start_date ? filter.start_date.split('T')[0] : 'all'}_${new Date().toISOString().split('T')[0]}.csv`
-    auditService.downloadCSV(logs, filename)
-  }
-
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString()
-  }
-
-  const getActionColor = (action: string) => {
-    if (action.includes('create')) return { background: '#d1fae5', color: '#065f46' }
-    if (action.includes('update')) return { background: '#fef3c7', color: '#92400e' }
-    if (action.includes('delete')) return { background: '#fee2e2', color: '#991b1b' }
-    if (action.includes('login')) return { background: '#e0f2fe', color: '#0369a1' }
-    return { background: '#f3f4f6', color: '#374151' }
-  }
-
-  const getResourceTypeColor = (resourceType: string) => {
-    switch (resourceType) {
-      case 'user': return { background: '#e0f2fe', color: '#0369a1' }
-      case 'user_role': return { background: '#f3e8ff', color: '#7c3aed' }
-      case 'system': return { background: '#fef3c7', color: '#92400e' }
-      default: return { background: '#f3f4f6', color: '#374151' }
-    }
-  }
-
+  
   if (loading) {
     return <div style={{ padding: '20px', textAlign: 'center' }}>Loading audit logs...</div>
   }
-
+  
+  if (error) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <div style={{ background: '#fee2e2', color: '#dc2626', padding: '12px', borderRadius: '6px' }}>
+          Error: {error}
+        </div>
+      </div>
+    )
+  }
+  
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <h3 style={{ margin: '0 0 8px 0' }}>Audit Logs</h3>
-          <p style={{ color: '#6b7280', margin: 0 }}>
-            Track user actions and system events for security and compliance.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            onClick={handleLast24Hours}
-            style={{
-              padding: '8px 16px',
-              background: '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Last 24 Hours
-          </button>
-          <button
-            onClick={handleDownloadCSV}
-            disabled={logs.length === 0}
-            style={{
-              padding: '8px 16px',
-              background: logs.length > 0 ? '#4f46e5' : '#9ca3af',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: logs.length > 0 ? 'pointer' : 'not-allowed',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Download CSV
-          </button>
-        </div>
+    <div style={{ padding: '20px' }}>
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <h3 style={{ margin: 0 }}>Audit Logs</h3>
+        
+        <select 
+          value={filter.action || ''}
+          onChange={(e) => setFilter(prev => ({ ...prev, action: e.target.value || undefined }))}
+          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+        >
+          <option value="">All Actions</option>
+          <option value="CREATE">Create</option>
+          <option value="UPDATE">Update</option>
+          <option value="DELETE">Delete</option>
+          <option value="LOGIN">Login</option>
+          <option value="LOGOUT">Logout</option>
+        </select>
+        
+        <select
+          value={filter.entity_type || ''}
+          onChange={(e) => setFilter(prev => ({ ...prev, entity_type: e.target.value || undefined }))}
+          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+        >
+          <option value="">All Entities</option>
+          <option value="user">Users</option>
+          <option value="role">Roles</option>
+          <option value="engagement">Engagements</option>
+          <option value="system">System</option>
+        </select>
+        
+        <input
+          type="date"
+          value={filter.start_date || ''}
+          onChange={(e) => setFilter(prev => ({ ...prev, start_date: e.target.value || undefined }))}
+          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+        />
+        
+        <input
+          type="date"
+          value={filter.end_date || ''}
+          onChange={(e) => setFilter(prev => ({ ...prev, end_date: e.target.value || undefined }))}
+          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+        />
+        
+        <button
+          onClick={() => setFilter({})}
+          style={{
+            padding: '8px 16px',
+            background: '#6b7280',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Clear Filters
+        </button>
       </div>
-
-      {/* Filters */}
+      
       <div style={{ 
-        background: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '20px'
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Search Actions
-            </label>
-            <input
-              type="text"
-              placeholder="Search by action..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-          
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Resource Type
-            </label>
-            <select
-              value={filter.resource_type || ''}
-              onChange={(e) => handleFilterChange('resource_type', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
-            >
-              <option value="">All Types</option>
-              <option value="user">User</option>
-              <option value="user_role">User Role</option>
-              <option value="system">System</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={filter.start_date?.split('T')[0] || ''}
-              onChange={(e) => handleFilterChange('start_date', e.target.value ? `${e.target.value}T00:00:00Z` : '')}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              End Date
-            </label>
-            <input
-              type="date"
-              value={filter.end_date?.split('T')[0] || ''}
-              onChange={(e) => handleFilterChange('end_date', e.target.value ? `${e.target.value}T23:59:59Z` : '')}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-        </div>
-
-        {(filter.start_date || filter.end_date || filter.resource_type || searchTerm) && (
-          <div style={{ marginTop: '12px' }}>
-            <button
-              onClick={() => {
-                setFilter({})
-                setSearchTerm('')
-              }}
-              style={{
-                padding: '6px 12px',
-                background: '#f3f4f6',
-                color: '#374151',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              Clear Filters
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Results Summary */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '16px',
-        fontSize: '14px',
-        color: '#6b7280'
-      }}>
-        <span>Showing {logs.length} audit log{logs.length !== 1 ? 's' : ''}</span>
-        {logs.length > 0 && (
-          <span>
-            Latest: {formatTimestamp(logs[0].timestamp)}
-          </span>
-        )}
-      </div>
-
-      {/* Audit Logs Table */}
-      <div style={{
-        background: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        overflow: 'hidden'
+        background: 'white', 
+        borderRadius: '8px', 
+        overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: '#f9fafb' }}>
             <tr>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Timestamp</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>User</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Action</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Resource</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Details</th>
-              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>Changes</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Timestamp</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>User</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Action</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Entity</th>
+              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Details</th>
             </tr>
           </thead>
           <tbody>
-            {logs.length > 0 ? logs.map(log => (
-              <tr key={log.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '12px', fontSize: '13px', fontFamily: 'monospace' }}>
-                  {formatTimestamp(log.timestamp)}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  {log.user_name}
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    ...getActionColor(log.action)
-                  }}>
-                    {log.action}
-                  </span>
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    ...getResourceTypeColor(log.resource_type)
-                  }}>
-                    {log.resource_type}
-                  </span>
-                </td>
-                <td style={{ padding: '12px', fontSize: '14px', maxWidth: '200px' }}>
-                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {log.details}
-                  </div>
-                </td>
-                <td style={{ padding: '12px', fontSize: '13px', maxWidth: '200px' }}>
-                  {log.changes && log.changes.length > 0 ? (
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {log.changes.slice(0, 2).map((change, idx) => (
-                        <div key={idx} style={{ marginBottom: '2px' }}>
-                          <strong>{change.field}:</strong> {JSON.stringify(change.old_value)} → {JSON.stringify(change.new_value)}
-                        </div>
-                      ))}
-                      {log.changes.length > 2 && (
-                        <div style={{ fontStyle: 'italic' }}>
-                          +{log.changes.length - 2} more changes
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span style={{ color: '#9ca3af', fontSize: '12px' }}>No changes</span>
-                  )}
-                </td>
-              </tr>
-            )) : (
+            {logs.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                  {Object.keys(filter).length > 0 || searchTerm ? 'No audit logs match your criteria' : 'No audit logs found'}
+                <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                  No audit logs found
                 </td>
               </tr>
+            ) : (
+              logs.map((log, index) => (
+                <tr key={log.id} style={{ borderBottom: index < logs.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                  <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '12px' }}>
+                    {new Date(log.timestamp).toLocaleString()}
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    {log.user_name || log.user_id || 'System'}
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <span style={{
+                      background: log.action === 'DELETE' ? '#fee2e2' : log.action === 'CREATE' ? '#d1fae5' : '#dbeafe',
+                      color: log.action === 'DELETE' ? '#dc2626' : log.action === 'CREATE' ? '#065f46' : '#1d4ed8',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {log.action}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <div>
+                      <div style={{ fontWeight: '500' }}>{log.entity_type}</div>
+                      {log.entity_id && <div style={{ fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>ID: {log.entity_id}</div>}
+                    </div>
+                  </td>
+                  <td style={{ padding: '12px', maxWidth: '200px' }}>
+                    {log.details && (
+                      <details style={{ fontSize: '12px' }}>
+                        <summary style={{ cursor: 'pointer', color: '#4f46e5' }}>
+                          View Details
+                        </summary>
+                        <pre style={{ 
+                          marginTop: '8px', 
+                          padding: '8px', 
+                          background: '#f3f4f6', 
+                          borderRadius: '4px',
+                          overflow: 'auto',
+                          maxHeight: '150px',
+                          fontSize: '11px'
+                        }}>
+                          {typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -1224,36 +740,74 @@ function AuditLogs() {
 
 function Reports() {
   return (
-    <div>
-      <h3>Reports & Analytics</h3>
-      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-        {[
-          'Engagement Progress Report',
-          'Team Performance Report',
-          'User Activity Report',
-          'System Usage Report'
-        ].map(report => (
-          <div key={report} style={{
-            background: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            textAlign: 'center'
+    <div style={{ padding: '20px' }}>
+      <h3>Reports</h3>
+      <p style={{ color: '#6b7280', marginBottom: '30px' }}>
+        Generate and view system reports and analytics.
+      </p>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+        <SettingsCard
+          title="User Activity Report"
+          description="Track user logins, actions, and engagement across the system"
+        >
+          <button style={{
+            padding: '8px 16px',
+            background: '#4f46e5',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer'
           }}>
-            <h4 style={{ margin: '0 0 10px 0' }}>{report}</h4>
+            Generate Report
+          </button>
+        </SettingsCard>
+        
+        <SettingsCard
+          title="System Performance"
+          description="Monitor system performance metrics and resource usage"
+        >
+          <button style={{
+            padding: '8px 16px',
+            background: '#4f46e5',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}>
+            View Metrics
+          </button>
+        </SettingsCard>
+        
+        <SettingsCard
+          title="Data Export"
+          description="Export system data for backup or analysis purposes"
+        >
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button style={{
-              background: '#4f46e5',
+              padding: '8px 16px',
+              background: '#059669',
               color: 'white',
               border: 'none',
-              padding: '8px 16px',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '14px'
+              fontSize: '12px'
             }}>
-              Generate
+              Users
+            </button>
+            <button style={{
+              padding: '8px 16px',
+              background: '#059669',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}>
+              Audit Logs
             </button>
           </div>
-        ))}
+        </SettingsCard>
       </div>
     </div>
   )
@@ -1261,21 +815,18 @@ function Reports() {
 
 function EditUserModal({ user, userRoles, onSave, onClose }) {
   const [formData, setFormData] = useState({
-    first_name: user.first_name || '',
-    last_name: user.last_name || '',
-    email: user.email || '',
-    job_title: user.job_title || '',
-    department: user.department || '',
-    employee_id: user.employee_id || '',
-    phone: user.phone || '',
-    status: user.status || 'active',
-    employee_type: user.employee_type || 'full_time',
-    user_role_id: user.user_role?.id || ''
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
+    email: user?.email || '',
+    user_role_id: user?.user_role_id || '',
+    job_title: user?.job_title || '',
+    department: user?.department || '',
+    is_active: user?.is_active !== false
   })
-
+  
   const [errors, setErrors] = useState({})
-
-  const handleSubmit = (e) => {
+  
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     // Basic validation
@@ -1288,24 +839,15 @@ function EditUserModal({ user, userRoles, onSave, onClose }) {
       setErrors(newErrors)
       return
     }
-
     
-    // Clean up the data before sending
-    const updateData = { ...formData }
-    if (!updateData.user_role_id) {
-      delete updateData.user_role_id // Remove empty role
-    }
-    
-    onSave(user.id, updateData)
-  }
-
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
+    try {
+      await onSave(user.id, formData)
+      onClose()
+    } catch (err) {
+      setErrors({ general: err.message || 'Failed to update user' })
     }
   }
-
+  
   return (
     <div style={{
       position: 'fixed',
@@ -1322,258 +864,172 @@ function EditUserModal({ user, userRoles, onSave, onClose }) {
       <div style={{
         background: 'white',
         borderRadius: '8px',
+        padding: '24px',
         width: '90%',
-        maxWidth: '600px',
+        maxWidth: '500px',
         maxHeight: '90vh',
         overflow: 'auto'
       }}>
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
-            Edit User: {user.first_name} {user.last_name}
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#6b7280'
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+        <h3 style={{ margin: '0 0 20px 0' }}>Edit User: {user?.first_name} {user?.last_name}</h3>
+        
+        {errors.general && (
+          <div style={{
+            background: '#fee2e2',
+            color: '#dc2626',
+            padding: '12px',
+            borderRadius: '6px',
+            marginBottom: '16px'
+          }}>
+            {errors.general}
+          </div>
+        )}
+        
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'grid', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
                 First Name *
               </label>
               <input
                 type="text"
                 value={formData.first_name}
-                onChange={(e) => handleChange('first_name', e.target.value)}
+                onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
                 style={{
                   width: '100%',
-                  padding: '8px 12px',
-                  border: `1px solid ${errors.first_name ? '#dc2626' : '#d1d5db'}`,
-                  borderRadius: '6px',
-                  fontSize: '14px'
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: errors.first_name ? '2px solid #dc2626' : '1px solid #d1d5db'
                 }}
               />
               {errors.first_name && (
-                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.first_name}</span>
+                <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                  {errors.first_name}
+                </div>
               )}
             </div>
-
+            
             <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
                 Last Name *
               </label>
               <input
                 type="text"
                 value={formData.last_name}
-                onChange={(e) => handleChange('last_name', e.target.value)}
+                onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
                 style={{
                   width: '100%',
-                  padding: '8px 12px',
-                  border: `1px solid ${errors.last_name ? '#dc2626' : '#d1d5db'}`,
-                  borderRadius: '6px',
-                  fontSize: '14px'
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: errors.last_name ? '2px solid #dc2626' : '1px solid #d1d5db'
                 }}
               />
               {errors.last_name && (
-                <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.last_name}</span>
+                <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                  {errors.last_name}
+                </div>
               )}
             </div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Email *
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: `1px solid ${errors.email ? '#dc2626' : '#d1d5db'}`,
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
-            />
-            {errors.email && (
-              <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.email}</span>
-            )}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            
             <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Email *
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: errors.email ? '2px solid #dc2626' : '1px solid #d1d5db'
+                }}
+              />
+              {errors.email && (
+                <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                  {errors.email}
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Role
+              </label>
+              <select
+                value={formData.user_role_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, user_role_id: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: '1px solid #d1d5db'
+                }}
+              >
+                <option value="">Select Role</option>
+                {userRoles.map(role => (
+                  <option key={role.id} value={role.id}>{role.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
                 Job Title
               </label>
               <input
                 type="text"
                 value={formData.job_title}
-                onChange={(e) => handleChange('job_title', e.target.value)}
+                onChange={(e) => setFormData(prev => ({ ...prev, job_title: e.target.value }))}
                 style={{
                   width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: '1px solid #d1d5db'
                 }}
               />
             </div>
-
+            
             <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
                 Department
               </label>
               <input
                 type="text"
                 value={formData.department}
-                onChange={(e) => handleChange('department', e.target.value)}
+                onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
                 style={{
                   width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: '1px solid #d1d5db'
                 }}
               />
             </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            
             <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                Employee ID
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                />
+                Active User
               </label>
-              <input
-                type="text"
-                value={formData.employee_id}
-                onChange={(e) => handleChange('employee_id', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              />
             </div>
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => handleChange('status', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
-                <option value="suspended">Suspended</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                Employee Type
-              </label>
-              <select
-                value={formData.employee_type}
-                onChange={(e) => handleChange('employee_type', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="full_time">Full Time</option>
-                <option value="part_time">Part Time</option>
-                <option value="contractor">Contractor</option>
-                <option value="intern">Intern</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                User Role
-              </label>
-              <select
-                value={formData.user_role_id}
-                onChange={(e) => handleChange('user_role_id', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="">No Role</option>
-                {userRoles.map(role => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
             <button
               type="button"
               onClick={onClose}
               style={{
-                padding: '8px 16px',
-                border: '1px solid #d1d5db',
+                padding: '10px 20px',
+                background: '#6b7280',
+                color: 'white',
+                border: 'none',
                 borderRadius: '6px',
-                background: 'white',
-                cursor: 'pointer',
-                fontSize: '14px'
+                cursor: 'pointer'
               }}
             >
               Cancel
@@ -1581,1318 +1037,12 @@ function EditUserModal({ user, userRoles, onSave, onClose }) {
             <button
               type="submit"
               style={{
-                padding: '8px 16px',
+                padding: '10px 20px',
                 background: '#4f46e5',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function CreateEngagementModal({ availableReps, onSave, onClose }: {
-  availableReps: string[]
-  onSave: (data: CreateEngagementRequest) => void
-  onClose: () => void
-}) {
-  const [activeUsers, setActiveUsers] = useState<any[]>([])
-
-  // Load active users on component mount
-  useEffect(() => {
-    const loadActiveUsers = async () => {
-      try {
-        const response = await userManagementService.getAllUsers({ is_active: true })
-        setActiveUsers(response.users)
-      } catch (error) {
-        console.error('Error loading active users:', error)
-      }
-    }
-    loadActiveUsers()
-  }, [])
-  const [formData, setFormData] = useState<CreateEngagementRequest>({
-    accountName: '',
-    name: '',
-    status: 'NEW',
-    health: 'GREEN',
-    assignedRep: '',
-    startDate: '',
-    closeDate: '',
-    salesType: undefined,
-    speed: undefined,
-    crm: undefined,
-    avazaLink: '',
-    projectFolderLink: '',
-    clientWebsiteLink: '',
-    soldBy: '',
-    seatCount: undefined,
-    hoursAlloted: undefined,
-    primaryContactName: '',
-    primaryContactEmail: '',
-    linkedinLink: '',
-    addOnsPurchased: []
-  })
-
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  const speedOptions: Speed[] = ['Slow', 'Medium', 'Fast']
-  const crmOptions: CRM[] = ['Salesforce', 'Dynamics', 'Hubspot', 'Other', 'None']
-  const salesTypeOptions: SalesType[] = ['Channel', 'Direct Sell', 'Greaser Sale']
-  const addOnOptions: AddOn[] = ['Meet', 'Deal', 'Forecasting', 'AI Agents', 'Content', 'Migration', 'Managed Services']
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    // Basic validation
-    const newErrors: Record<string, string> = {}
-    if (!formData.name.trim()) newErrors.name = 'Engagement name is required'
-    if (!formData.accountName.trim()) newErrors.accountName = 'Account name is required'
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
-
-    // Clean up the data before sending
-    const submitData = { ...formData }
-    if (!submitData.startDate) delete submitData.startDate
-    if (!submitData.closeDate) delete submitData.closeDate
-    if (!submitData.assignedRep) delete submitData.assignedRep
-    if (!submitData.salesType) delete submitData.salesType
-    if (!submitData.speed) delete submitData.speed
-    if (!submitData.crm) delete submitData.crm
-    if (!submitData.avazaLink) delete submitData.avazaLink
-    if (!submitData.projectFolderLink) delete submitData.projectFolderLink
-    if (!submitData.clientWebsiteLink) delete submitData.clientWebsiteLink
-    if (!submitData.soldBy) delete submitData.soldBy
-    if (!submitData.seatCount) delete submitData.seatCount
-    if (!submitData.hoursAlloted) delete submitData.hoursAlloted
-    if (!submitData.primaryContactName) delete submitData.primaryContactName
-    if (!submitData.primaryContactEmail) delete submitData.primaryContactEmail
-    if (!submitData.linkedinLink) delete submitData.linkedinLink
-    if (!submitData.addOnsPurchased || submitData.addOnsPurchased.length === 0) delete submitData.addOnsPurchased
-    
-    onSave(submitData)
-  }
-
-  const handleChange = (field: keyof CreateEngagementRequest, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
-    }
-  }
-
-  const handleAddOnChange = (addOn: AddOn, checked: boolean) => {
-    const currentAddOns = formData.addOnsPurchased || []
-    if (checked) {
-      setFormData(prev => ({ ...prev, addOnsPurchased: [...currentAddOns, addOn] }))
-    } else {
-      setFormData(prev => ({ ...prev, addOnsPurchased: currentAddOns.filter(a => a !== addOn) }))
-    }
-  }
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '8px',
-        width: '90%',
-        maxWidth: '600px',
-        maxHeight: '90vh',
-        overflow: 'auto'
-      }}>
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
-            Create New Engagement
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#6b7280'
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ padding: '20px', maxHeight: '70vh', overflow: 'auto' }}>
-          {/* Basic Information */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Basic Information
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Engagement Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: `1px solid ${errors.name ? '#dc2626' : '#d1d5db'}`,
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Enter engagement name"
-                />
-                {errors.name && (
-                  <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.name}</span>
-                )}
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Account Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.accountName}
-                  onChange={(e) => handleChange('accountName', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: `1px solid ${errors.accountName ? '#dc2626' : '#d1d5db'}`,
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Enter account name"
-                />
-                {errors.accountName && (
-                  <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.accountName}</span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => handleChange('status', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="NEW">New</option>
-                  <option value="KICK_OFF">Kick Off</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="LAUNCHED">Launched</option>
-                  <option value="STALLED">Stalled</option>
-                  <option value="ON_HOLD">On Hold</option>
-                  <option value="CLAWED_BACK">Clawed Back</option>
-                  <option value="COMPLETED">Completed</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Health
-                </label>
-                <select
-                  value={formData.health}
-                  onChange={(e) => handleChange('health', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="GREEN">Green</option>
-                  <option value="YELLOW">Yellow</option>
-                  <option value="RED">Red</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Assigned Rep
-                </label>
-                <select
-                  value={formData.assignedRep || ''}
-                  onChange={(e) => handleChange('assignedRep', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select Assigned Rep</option>
-                  {activeUsers.map(user => (
-                    <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
-                      {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Timeline
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate || ''}
-                  onChange={(e) => handleChange('startDate', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Close Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.closeDate || ''}
-                  onChange={(e) => handleChange('closeDate', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Sales Type
-                </label>
-                <select
-                  value={formData.salesType || ''}
-                  onChange={(e) => handleChange('salesType', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select Type</option>
-                  {salesTypeOptions.map(type => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Speed
-                </label>
-                <select
-                  value={formData.speed || ''}
-                  onChange={(e) => handleChange('speed', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select Speed</option>
-                  {speedOptions.map(speed => (
-                    <option key={speed} value={speed}>
-                      {speed}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Project Details */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Project Details
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  CRM
-                </label>
-                <select
-                  value={formData.crm || ''}
-                  onChange={(e) => handleChange('crm', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select CRM</option>
-                  {crmOptions.map(crm => (
-                    <option key={crm} value={crm}>
-                      {crm}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Sold By
-                </label>
-                <input
-                  type="text"
-                  value={formData.soldBy || ''}
-                  onChange={(e) => handleChange('soldBy', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Enter who sold this"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Seat Count
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.seatCount || ''}
-                  onChange={(e) => handleChange('seatCount', parseInt(e.target.value) || undefined)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Number of seats"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Hours Alloted
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.hoursAlloted || ''}
-                  onChange={(e) => handleChange('hoursAlloted', parseInt(e.target.value) || undefined)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Hours alloted"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Contact
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Contact Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.primaryContactName || ''}
-                  onChange={(e) => handleChange('primaryContactName', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Primary contact name"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Contact Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.primaryContactEmail || ''}
-                  onChange={(e) => handleChange('primaryContactEmail', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="contact@company.com"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  LinkedIn
-                </label>
-                <input
-                  type="url"
-                  value={formData.linkedinLink || ''}
-                  onChange={(e) => handleChange('linkedinLink', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="LinkedIn profile URL"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Links */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Links
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Avaza Project
-                </label>
-                <input
-                  type="url"
-                  value={formData.avazaLink || ''}
-                  onChange={(e) => handleChange('avazaLink', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Avaza project URL"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Project Folder
-                </label>
-                <input
-                  type="url"
-                  value={formData.projectFolderLink || ''}
-                  onChange={(e) => handleChange('projectFolderLink', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Project folder URL"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Client Website
-                </label>
-                <input
-                  type="url"
-                  value={formData.clientWebsiteLink || ''}
-                  onChange={(e) => handleChange('clientWebsiteLink', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Client website URL"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Add-ons */}
-          <div style={{ marginBottom: '32px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Add-ons
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-              {addOnOptions.map(addOn => (
-                <label
-                  key={addOn}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '14px',
-                    color: '#253D2C',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={(formData.addOnsPurchased || []).includes(addOn)}
-                    onChange={(e) => handleAddOnChange(addOn, e.target.checked)}
-                    style={{ margin: 0, accentColor: '#2E6F40' }}
-                  />
-                  {addOn}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '8px 16px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                background: 'white',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                padding: '8px 16px',
-                background: '#4f46e5',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
-            >
-              Create Engagement
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function EditEngagementModal({ engagement, availableReps, onSave, onClose }: {
-  engagement: Engagement
-  availableReps: string[]
-  onSave: (id: string, data: UpdateEngagementRequest) => void
-  onClose: () => void
-}) {
-  const [activeUsers, setActiveUsers] = useState<any[]>([])
-
-  // Load active users on component mount
-  useEffect(() => {
-    const loadActiveUsers = async () => {
-      try {
-        const response = await userManagementService.getAllUsers({ is_active: true })
-        setActiveUsers(response.users)
-      } catch (error) {
-        console.error('Error loading active users:', error)
-      }
-    }
-    loadActiveUsers()
-  }, [])
-  const [formData, setFormData] = useState<UpdateEngagementRequest>({
-    accountName: engagement.accountName,
-    name: engagement.name,
-    status: engagement.status,
-    health: engagement.health,
-    assignedRep: engagement.assignedRep,
-    startDate: engagement.startDate,
-    closeDate: engagement.closeDate,
-    salesType: engagement.salesType,
-    speed: engagement.speed,
-    crm: engagement.crm,
-    avazaLink: engagement.avazaLink,
-    projectFolderLink: engagement.projectFolderLink,
-    clientWebsiteLink: engagement.clientWebsiteLink,
-    soldBy: engagement.soldBy,
-    seatCount: engagement.seatCount,
-    hoursAlloted: engagement.hoursAlloted,
-    primaryContactName: engagement.primaryContactName,
-    primaryContactEmail: engagement.primaryContactEmail,
-    linkedinLink: engagement.linkedinLink,
-    addOnsPurchased: engagement.addOnsPurchased
-  })
-
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  const speedOptions: Speed[] = ['Slow', 'Medium', 'Fast']
-  const crmOptions: CRM[] = ['Salesforce', 'Dynamics', 'Hubspot', 'Other', 'None']
-  const salesTypeOptions: SalesType[] = ['Channel', 'Direct Sell', 'Greaser Sale']
-  const addOnOptions: AddOn[] = ['Meet', 'Deal', 'Forecasting', 'AI Agents', 'Content', 'Migration', 'Managed Services']
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    // Basic validation
-    const newErrors: Record<string, string> = {}
-    if (!formData.name?.trim()) newErrors.name = 'Engagement name is required'
-    if (!formData.accountName?.trim()) newErrors.accountName = 'Account name is required'
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
-
-    // Clean up the data before sending
-    const submitData = { ...formData }
-    if (!submitData.startDate) delete submitData.startDate
-    if (!submitData.closeDate) delete submitData.closeDate
-    if (!submitData.assignedRep) delete submitData.assignedRep
-    if (!submitData.salesType) delete submitData.salesType
-    if (!submitData.speed) delete submitData.speed
-    if (!submitData.crm) delete submitData.crm
-    if (!submitData.avazaLink) delete submitData.avazaLink
-    if (!submitData.projectFolderLink) delete submitData.projectFolderLink
-    if (!submitData.clientWebsiteLink) delete submitData.clientWebsiteLink
-    if (!submitData.soldBy) delete submitData.soldBy
-    if (!submitData.seatCount) delete submitData.seatCount
-    if (!submitData.hoursAlloted) delete submitData.hoursAlloted
-    if (!submitData.primaryContactName) delete submitData.primaryContactName
-    if (!submitData.primaryContactEmail) delete submitData.primaryContactEmail
-    if (!submitData.linkedinLink) delete submitData.linkedinLink
-    if (!submitData.addOnsPurchased || submitData.addOnsPurchased.length === 0) delete submitData.addOnsPurchased
-    
-    onSave(engagement.id, submitData)
-  }
-
-  const handleChange = (field: keyof UpdateEngagementRequest, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
-    }
-  }
-
-  const handleAddOnChange = (addOn: AddOn, checked: boolean) => {
-    const currentAddOns = formData.addOnsPurchased || []
-    if (checked) {
-      setFormData(prev => ({ ...prev, addOnsPurchased: [...currentAddOns, addOn] }))
-    } else {
-      setFormData(prev => ({ ...prev, addOnsPurchased: currentAddOns.filter(a => a !== addOn) }))
-    }
-  }
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '8px',
-        width: '90%',
-        maxWidth: '600px',
-        maxHeight: '90vh',
-        overflow: 'auto'
-      }}>
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
-            Edit Engagement: {engagement.name}
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#6b7280'
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ padding: '20px', maxHeight: '70vh', overflow: 'auto' }}>
-          {/* Basic Information */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Basic Information
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Engagement Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name || ''}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: `1px solid ${errors.name ? '#dc2626' : '#d1d5db'}`,
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Enter engagement name"
-                />
-                {errors.name && (
-                  <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.name}</span>
-                )}
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Account Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.accountName || ''}
-                  onChange={(e) => handleChange('accountName', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: `1px solid ${errors.accountName ? '#dc2626' : '#d1d5db'}`,
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Enter account name"
-                />
-                {errors.accountName && (
-                  <span style={{ fontSize: '12px', color: '#dc2626' }}>{errors.accountName}</span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Status
-                </label>
-                <select
-                  value={formData.status || ''}
-                  onChange={(e) => handleChange('status', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="NEW">New</option>
-                  <option value="KICK_OFF">Kick Off</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="LAUNCHED">Launched</option>
-                  <option value="STALLED">Stalled</option>
-                  <option value="ON_HOLD">On Hold</option>
-                  <option value="CLAWED_BACK">Clawed Back</option>
-                  <option value="COMPLETED">Completed</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Health
-                </label>
-                <select
-                  value={formData.health || ''}
-                  onChange={(e) => handleChange('health', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="GREEN">Green</option>
-                  <option value="YELLOW">Yellow</option>
-                  <option value="RED">Red</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Assigned Rep
-                </label>
-                <select
-                  value={formData.assignedRep || ''}
-                  onChange={(e) => handleChange('assignedRep', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select Assigned Rep</option>
-                  {activeUsers.map(user => (
-                    <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
-                      {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Project Timeline */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Project Timeline
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate || ''}
-                  onChange={(e) => handleChange('startDate', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Close Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.closeDate || ''}
-                  onChange={(e) => handleChange('closeDate', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Sales Information */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Sales Information
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Sales Type
-                </label>
-                <select
-                  value={formData.salesType || ''}
-                  onChange={(e) => handleChange('salesType', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select Type</option>
-                  {salesTypeOptions.map(type => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Speed
-                </label>
-                <select
-                  value={formData.speed || ''}
-                  onChange={(e) => handleChange('speed', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select Speed</option>
-                  {speedOptions.map(speed => (
-                    <option key={speed} value={speed}>
-                      {speed}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  CRM
-                </label>
-                <select
-                  value={formData.crm || ''}
-                  onChange={(e) => handleChange('crm', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select CRM</option>
-                  {crmOptions.map(crm => (
-                    <option key={crm} value={crm}>
-                      {crm}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Sold By
-                </label>
-                <input
-                  type="text"
-                  value={formData.soldBy || ''}
-                  onChange={(e) => handleChange('soldBy', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Enter salesperson"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Project Details */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Project Details
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Seat Count
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.seatCount || ''}
-                  onChange={(e) => handleChange('seatCount', parseInt(e.target.value) || undefined)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Number of seats"
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Hours Allocated
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.hoursAlloted || ''}
-                  onChange={(e) => handleChange('hoursAlloted', parseInt(e.target.value) || undefined)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Total hours"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Contact Information
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Primary Contact Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.primaryContactName || ''}
-                  onChange={(e) => handleChange('primaryContactName', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="Contact name"
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Primary Contact Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.primaryContactEmail || ''}
-                  onChange={(e) => handleChange('primaryContactEmail', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="contact@company.com"
-                />
-              </div>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                LinkedIn Profile
-              </label>
-              <input
-                type="url"
-                value={formData.linkedinLink || ''}
-                onChange={(e) => handleChange('linkedinLink', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-                placeholder="https://linkedin.com/in/..."
-              />
-            </div>
-          </div>
-
-          {/* Project Links */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Project Links
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Avaza Project Link
-                </label>
-                <input
-                  type="url"
-                  value={formData.avazaLink || ''}
-                  onChange={(e) => handleChange('avazaLink', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="https://avaza.com/..."
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Project Folder Link
-                </label>
-                <input
-                  type="url"
-                  value={formData.projectFolderLink || ''}
-                  onChange={(e) => handleChange('projectFolderLink', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="https://drive.google.com/..."
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Client Website
-                </label>
-                <input
-                  type="url"
-                  value={formData.clientWebsiteLink || ''}
-                  onChange={(e) => handleChange('clientWebsiteLink', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                  placeholder="https://clientwebsite.com"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Add-Ons */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#2E6F40', borderBottom: '2px solid #68BA7F', paddingBottom: '4px' }}>
-              Add-Ons Purchased
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-              {addOnOptions.map(addOn => (
-                <label key={addOn} style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
-                  <input
-                    type="checkbox"
-                    checked={(formData.addOnsPurchased || []).includes(addOn)}
-                    onChange={(e) => handleAddOnChange(addOn, e.target.checked)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  {addOn}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '8px 16px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                background: 'white',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                padding: '8px 16px',
-                background: '#4f46e5',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
+                cursor: 'pointer'
               }}
             >
               Save Changes
