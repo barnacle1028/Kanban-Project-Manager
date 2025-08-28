@@ -196,54 +196,51 @@ const AccountManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-4">
-      <div className="mb-4">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-          <h1 className="text-xl font-bold text-gray-900">Account Management</h1>
-          <div className="flex items-center gap-3">
-            {/* Search Bar */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search accounts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 px-3 py-2 pl-8 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-              />
-              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-            <button
-              onClick={handleCreateAccount}
-              className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors text-sm font-medium"
-            >
-              + Add Account
-            </button>
+    <div className="max-w-7xl mx-auto p-6">
+      {/* Compact Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Client Accounts</h1>
+        <div className="flex items-center space-x-3">
+          {/* Compact Search */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-48 px-3 py-1.5 pl-7 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500"
+            />
+            <svg className="absolute left-2 top-2 h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
+          <button
+            onClick={handleCreateAccount}
+            className="px-4 py-1.5 bg-teal-600 text-white text-sm rounded hover:bg-teal-700 transition-colors"
+          >
+            + New Account
+          </button>
         </div>
       </div>
 
       {/* Accounts Table */}
-      <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
+      <div className="bg-white shadow rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                 Account Name
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                 Segment
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                 Region
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                 Created
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                 Actions
               </th>
             </tr>
@@ -251,37 +248,37 @@ const AccountManagement: React.FC = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAccounts.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                   {searchQuery ? 'No accounts found matching your search.' : 'No accounts created yet.'}
                 </td>
               </tr>
             ) : (
               filteredAccounts.map((account) => (
                 <tr key={account.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{account.name}</div>
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    <div className="text-sm font-semibold text-gray-900">{account.name}</div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">
                       {account.segment || 'Not Set'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-700">
                     {account.region || 'Not Set'}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                     {new Date(account.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-2 whitespace-nowrap text-right">
                     <button
                       onClick={() => handleEditAccount(account)}
-                      className="text-teal-600 hover:text-teal-900 mr-3 text-xs px-2 py-1 rounded hover:bg-teal-50"
+                      className="text-teal-600 hover:text-teal-800 mr-4 text-sm"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteAccount(account)}
-                      className="text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded hover:bg-red-50"
+                      className="text-red-600 hover:text-red-800 text-sm"
                     >
                       Delete
                     </button>
@@ -294,8 +291,8 @@ const AccountManagement: React.FC = () => {
       </div>
 
       {/* Account Count */}
-      <div className="mt-3 text-xs text-gray-500">
-        Showing {filteredAccounts.length} of {accounts.length} accounts
+      <div className="mt-4 text-sm text-gray-600 flex justify-between items-center">
+        <span>Showing {filteredAccounts.length} of {accounts.length} accounts</span>
       </div>
 
       {/* Edit/Create Modal */}
