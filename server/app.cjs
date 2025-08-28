@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit')
 require('dotenv').config()
 
 const authRoutes = require('./routes/auth.cjs')
+const accountRoutes = require('./routes/accounts.cjs')
 const engagementRoutes = require('./routes/engagements.cjs')
 
 const app = express()
@@ -64,6 +65,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes)
+app.use('/api/accounts', accountRoutes)
 app.use('/api/engagements', engagementRoutes)
 
 // 404 handler

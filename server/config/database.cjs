@@ -1,12 +1,19 @@
 const { Pool } = require('pg')
+const dns = require('dns')
 require('dotenv').config()
+
+// Configure DNS to use public DNS servers for better resolution
+dns.setServers(['1.1.1.1', '8.8.8.8'])
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   min: parseInt(process.env.DB_POOL_MIN || '2'),
   max: parseInt(process.env.DB_POOL_MAX || '10'),
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000,
+  ssl: {
+    rejectUnauthorized: false
+  }
 })
 
 pool.on('error', (err, client) => {

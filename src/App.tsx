@@ -4,6 +4,7 @@ import { useEngagements, useEngagement } from './hooks/useEngagements'
 import type { EngagementWithMilestones } from './api/types'
 import UserRoleManagement from './components/admin/UserRoleManagement'
 import AdminPanel from './components/admin/AdminPanel'
+import AccountManagement from './components/admin/AccountManagement'
 import PasswordReset from './components/auth/PasswordReset'
 import PasswordResetConfirm from './components/auth/PasswordResetConfirm'
 import UserSettings from './components/user/UserSettings'
@@ -482,11 +483,12 @@ function NavigationMenu({ user }: { user: any }) {
     }
 
     if (isChris) {
+      items.push({ id: 'accounts', label: '🏢 Account Management', roles: ['ADMIN'] })
       items.push({ id: 'admin', label: '⚙️ Administration', roles: ['ADMIN'] })
     }
 
     const filtered = items.filter(item => 
-      item.roles.includes(user.role) || (item.id === 'admin' && isChris)
+      item.roles.includes(user.role) || ((item.id === 'admin' || item.id === 'accounts') && isChris)
     )
 
     return [items, filtered]
@@ -538,6 +540,9 @@ function AppContent({ user }: { user: any }) {
     
     case 'team':
       return <TeamManagement user={user} />
+    
+    case 'accounts':
+      return <AccountManagement />
     
     case 'admin':
       return <AdminPanel />
