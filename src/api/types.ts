@@ -13,6 +13,16 @@ export interface Account {
   name: string
   segment?: string
   region?: string
+  account_type?: string
+  address_street?: string
+  address_city?: string
+  address_state?: string
+  address_zip?: string
+  primary_contact_name?: string
+  primary_contact_title?: string
+  primary_contact_email?: string
+  account_note?: string
+  industry?: string
   created_at: string
 }
 
