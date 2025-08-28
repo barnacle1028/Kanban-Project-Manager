@@ -19,6 +19,9 @@
 ### **Mission Statement**
 Create a comprehensive, enterprise-grade Kanban project management system with advanced account management, engagement tracking, milestone management, and real-time collaboration capabilities.
 
+### **Development Policy**
+**🚫 NO MORE LOCALHOST TESTING** - All development changes are pushed directly to the live application for testing and validation.
+
 ---
 
 ## 🎯 **DEVELOPMENT PHASES**

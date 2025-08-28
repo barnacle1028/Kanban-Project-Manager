@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import EngagementAdminContent from '../EngagementAdminContent'
 import AccountManagementAdmin from './AccountManagementAdmin'
+import EngagementTypesManager from '../EngagementTypesManager'
 import type { Engagement, Rep } from '../../types'
 
 interface TabbedManagementInterfaceProps {
@@ -20,7 +21,7 @@ export default function TabbedManagementInterface({
   onDeleteEngagement,
   onBackToManager
 }: TabbedManagementInterfaceProps) {
-  const [activeTab, setActiveTab] = useState<'engagements' | 'accounts'>('engagements')
+  const [activeTab, setActiveTab] = useState<'engagements' | 'accounts' | 'engagement-types'>('engagements')
 
   return (
     <div style={{
@@ -140,6 +141,33 @@ export default function TabbedManagementInterface({
           >
             🏢 Account Management
           </button>
+          <button
+            onClick={() => setActiveTab('engagement-types')}
+            style={{
+              padding: '12px 24px',
+              background: activeTab === 'engagement-types' ? '#2E6F40' : 'transparent',
+              color: activeTab === 'engagement-types' ? 'white' : '#253D2C',
+              border: 'none',
+              borderRadius: '8px 8px 0 0',
+              fontSize: '14px',
+              fontWeight: '600',
+              fontFamily: 'Trebuchet MS, Arial, sans-serif',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'engagement-types') {
+                e.currentTarget.style.background = '#f8fafc'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'engagement-types') {
+                e.currentTarget.style.background = 'transparent'
+              }
+            }}
+          >
+            ⚙️ Engagement Types
+          </button>
         </div>
 
         <p style={{
@@ -150,7 +178,9 @@ export default function TabbedManagementInterface({
         }}>
           {activeTab === 'engagements' 
             ? 'Manage all engagements and create new ones'
-            : 'Manage client accounts and business relationships'
+            : activeTab === 'accounts'
+              ? 'Manage client accounts and business relationships'
+              : 'Manage engagement types with full CRUD operations'
           }
         </p>
       </div>
@@ -167,9 +197,13 @@ export default function TabbedManagementInterface({
               onDeleteEngagement={onDeleteEngagement}
             />
           </div>
-        ) : (
+        ) : activeTab === 'accounts' ? (
           <div style={{ background: 'transparent' }}>
             <AccountManagementAdmin />
+          </div>
+        ) : (
+          <div style={{ background: 'transparent' }}>
+            <EngagementTypesManager />
           </div>
         )}
       </div>
