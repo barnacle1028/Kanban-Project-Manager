@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import type { Engagement, Rep, ProjectStatus, SalesType, Speed, CRM, AddOn } from '../types'
 import type { UserWithRole } from '../types/userManagement'
 import { createStandardMilestones } from '../utils/standardMilestones'
 import { userManagementService } from '../api/userManagement'
 import { engagementTypesApi, type EngagementType } from '../api/engagementTypes'
 import { useQuery } from '@tanstack/react-query'
+import { auditService } from '../services/auditService'
+import { CsvService } from '../services/csvService'
 
 type SortOption = {
   column: string
@@ -105,6 +107,7 @@ export default function EngagementAdminContent({
   const [sortConfig, setSortConfig] = useState<SortOption>({ column: '', direction: 'none' })
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'ALL'>('ALL')
   const [activeUsers, setActiveUsers] = useState<UserWithRole[]>([])
+  const csvFileInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch engagement types
   const { data: engagementTypes = [], isLoading: engagementTypesLoading, error: engagementTypesError } = useQuery({
@@ -175,10 +178,19 @@ export default function EngagementAdminContent({
   const handleSubmitAdd = (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.name && formData.accountName) {
-      onAddEngagement({
+      const newEngagement = {
         ...formData,
         health: 'GREEN' as const
-      })
+      }
+      onAddEngagement(newEngagement)
+      
+      auditService.logAction(
+        'system-user',
+        'System User',
+        'CREATE',
+        'engagement',
+        `Created engagement: ${newEngagement.name} for ${newEngagement.accountName}`
+      )
       setFormData({
         name: '',
         accountName: '',
@@ -262,6 +274,15 @@ export default function EngagementAdminContent({
   const handleDelete = (engagement: Engagement) => {
     if (window.confirm(`Are you sure you want to delete "${engagement.name}"? This action cannot be undone.`)) {
       onDeleteEngagement(engagement.id)
+      
+      auditService.logAction(
+        'system-user',
+        'System User',
+        'DELETE',
+        'engagement',
+        `Deleted engagement: ${engagement.name} for ${engagement.accountName}`,
+        engagement.id
+      )
     }
   }
 
@@ -327,6 +348,110 @@ export default function EngagementAdminContent({
     })
   }, [engagements, statusFilter, sortConfig])
 
+  const handleDownloadCSV = () => {
+    const columnMapping = {
+      name: 'Project Name',
+      accountName: 'Company Name',
+      assignedRep: 'Assigned Rep',
+      status: 'Status',
+      startDate: 'Start Date',
+      closeDate: 'Close Date',
+      salesType: 'Sales Type',
+      speed: 'Speed',
+      crm: 'CRM',
+      engagementType: 'Engagement Type',
+      soldBy: 'Sold By',
+      seatCount: 'Seat Count',
+      hoursAlloted: 'Hours Allotted',
+      health: 'Health'
+    }
+    
+    CsvService.downloadCSV(filteredAndSortedEngagements, 'engagements', columnMapping)
+    
+    auditService.logAction(
+      'system-user',
+      'System User',
+      'EXPORT',
+      'engagement',
+      `Exported ${filteredAndSortedEngagements.length} engagements to CSV`
+    )
+  }
+
+  const handleUploadCSV = CsvService.createUploadHandler<Partial<Engagement>>(
+    (data) => {
+      const validEngagements = data.filter(eng => eng.name && eng.accountName)
+      
+      if (validEngagements.length === 0) {
+        alert('No valid engagements found in CSV')
+        return
+      }
+
+      if (window.confirm(`Import ${validEngagements.length} engagements? This will add new engagements to the system.`)) {
+        validEngagements.forEach(engData => {
+          const newEngagement = {
+            name: engData.name!.trim(),
+            accountName: engData.accountName!.trim(),
+            assignedRep: engData.assignedRep || '',
+            status: (engData.status as ProjectStatus) || 'NEW',
+            startDate: engData.startDate || '',
+            closeDate: engData.closeDate || '',
+            salesType: (engData.salesType as SalesType) || 'Direct Sell',
+            speed: (engData.speed as Speed) || 'Medium',
+            crm: (engData.crm as CRM) || 'Salesforce',
+            engagementType: engData.engagementType || '',
+            soldBy: engData.soldBy || '',
+            seatCount: engData.seatCount || 0,
+            hoursAlloted: engData.hoursAlloted || 0,
+            addOnsPurchased: (engData.addOnsPurchased as AddOn[]) || [],
+            avazaLink: engData.avazaLink || '',
+            projectFolderLink: engData.projectFolderLink || '',
+            clientWebsiteLink: engData.clientWebsiteLink || '',
+            primaryContactName: engData.primaryContactName || '',
+            primaryContactEmail: engData.primaryContactEmail || '',
+            linkedinLink: engData.linkedinLink || '',
+            health: 'GREEN' as const
+          }
+          onAddEngagement(newEngagement)
+        })
+
+        auditService.logAction(
+          'system-user',
+          'System User',
+          'IMPORT',
+          'engagement',
+          `Imported ${validEngagements.length} engagements from CSV`
+        )
+      }
+    },
+    {
+      'Project Name': 'name',
+      'Company Name': 'accountName',
+      'Assigned Rep': 'assignedRep',
+      'Status': 'status',
+      'Start Date': 'startDate',
+      'Close Date': 'closeDate',
+      'Sales Type': 'salesType',
+      'Speed': 'speed',
+      'CRM': 'crm',
+      'Engagement Type': 'engagementType',
+      'Sold By': 'soldBy',
+      'Seat Count': 'seatCount',
+      'Hours Allotted': 'hoursAlloted'
+    },
+    (data) => {
+      const errors: string[] = []
+      data.forEach((item, index) => {
+        if (!item.name || !item.name.trim()) {
+          errors.push(`Row ${index + 1}: Project Name is required`)
+        }
+        if (!item.accountName || !item.accountName.trim()) {
+          errors.push(`Row ${index + 1}: Company Name is required`)
+        }
+      })
+      return { valid: errors.length === 0, errors }
+    }
+  )
+
   return (
     <>
       {/* Controls Header */}
@@ -370,6 +495,45 @@ export default function EngagementAdminContent({
                 <option key={status} value={status}>{status.replace('_', ' ')}</option>
               ))}
             </select>
+            <button
+              onClick={handleDownloadCSV}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'white',
+                background: '#3b82f6',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}
+            >
+              📥 Download CSV
+            </button>
+            <input
+              ref={csvFileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleUploadCSV}
+              style={{ display: 'none' }}
+            />
+            <button
+              onClick={() => csvFileInputRef.current?.click()}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'white',
+                background: '#f59e0b',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}
+            >
+              📤 Upload CSV
+            </button>
             <button
               onClick={() => setShowAddForm(true)}
               disabled={showAddForm || editingEngagement !== null}

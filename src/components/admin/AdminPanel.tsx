@@ -613,6 +613,8 @@ function AuditLogs() {
           <option value="CREATE">Create</option>
           <option value="UPDATE">Update</option>
           <option value="DELETE">Delete</option>
+          <option value="EXPORT">Export</option>
+          <option value="IMPORT">Import</option>
           <option value="LOGIN">Login</option>
           <option value="LOGOUT">Logout</option>
         </select>
@@ -624,8 +626,10 @@ function AuditLogs() {
         >
           <option value="">All Entities</option>
           <option value="user">Users</option>
-          <option value="role">Roles</option>
+          <option value="user_role">User Roles</option>
           <option value="engagement">Engagements</option>
+          <option value="account">Accounts</option>
+          <option value="engagement_type">Engagement Types</option>
           <option value="system">System</option>
         </select>
         

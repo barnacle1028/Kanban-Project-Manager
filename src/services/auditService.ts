@@ -4,7 +4,7 @@ export interface AuditLog {
   user_id: string
   user_name: string
   action: string
-  resource_type: 'user' | 'user_role' | 'system'
+  resource_type: 'user' | 'user_role' | 'system' | 'engagement' | 'account' | 'engagement_type'
   resource_id?: string
   details: string
   changes?: {
@@ -49,7 +49,7 @@ class AuditService {
     userId: string,
     userName: string,
     action: string,
-    resourceType: 'user' | 'user_role' | 'system',
+    resourceType: 'user' | 'user_role' | 'system' | 'engagement' | 'account' | 'engagement_type',
     details: string,
     resourceId?: string,
     changes?: AuditLog['changes']

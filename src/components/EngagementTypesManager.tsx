@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { engagementTypesApi, type EngagementType } from '../api/engagementTypes'
 import { supabase } from '../lib/supabase'
+import { auditService } from '../services/auditService'
+import { CsvService } from '../services/csvService'
 
 export default function EngagementTypesManager() {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -15,6 +17,7 @@ export default function EngagementTypesManager() {
   })
 
   const queryClient = useQueryClient()
+  const csvFileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: engagementTypes = [], isLoading, error } = useQuery({
     queryKey: ['engagement-types-all'],
@@ -31,7 +34,15 @@ export default function EngagementTypesManager() {
 
   const createMutation = useMutation({
     mutationFn: engagementTypesApi.create,
-    onSuccess: () => {
+    onSuccess: (newType) => {
+      auditService.logAction(
+        'system-user',
+        'System User',
+        'CREATE',
+        'engagement_type',
+        `Created engagement type: ${newType.name}`,
+        newType.id
+      )
       queryClient.invalidateQueries(['engagement-types-all'])
       queryClient.invalidateQueries(['engagement-types'])
       handleCancel()
@@ -39,9 +50,19 @@ export default function EngagementTypesManager() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<EngagementType> }) =>
+    mutationFn: ({ id, updates, originalType }: { id: string; updates: Partial<EngagementType>; originalType?: EngagementType }) =>
       engagementTypesApi.update(id, updates),
-    onSuccess: () => {
+    onSuccess: (updatedType, variables) => {
+      const changes = variables.originalType ? auditService.generateChanges(variables.originalType, updatedType) : []
+      auditService.logAction(
+        'system-user',
+        'System User',
+        'UPDATE',
+        'engagement_type',
+        `Updated engagement type: ${updatedType.name}`,
+        updatedType.id,
+        changes
+      )
       queryClient.invalidateQueries(['engagement-types-all'])
       queryClient.invalidateQueries(['engagement-types'])
       handleCancel()
@@ -49,8 +70,18 @@ export default function EngagementTypesManager() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: engagementTypesApi.delete,
-    onSuccess: () => {
+    mutationFn: ({ id, typeName }: { id: string; typeName: string }) => {
+      return engagementTypesApi.delete(id)
+    },
+    onSuccess: (_, variables) => {
+      auditService.logAction(
+        'system-user',
+        'System User',
+        'DELETE',
+        'engagement_type',
+        `Deleted engagement type: ${variables.typeName}`,
+        variables.id
+      )
       queryClient.invalidateQueries(['engagement-types-all'])
       queryClient.invalidateQueries(['engagement-types'])
     }
@@ -70,7 +101,8 @@ export default function EngagementTypesManager() {
     }
 
     if (editingType) {
-      updateMutation.mutate({ id: editingType, updates: typeData })
+      const originalType = engagementTypes.find(t => t.id === editingType)
+      updateMutation.mutate({ id: editingType, updates: typeData, originalType })
     } else {
       createMutation.mutate(typeData)
     }
@@ -90,7 +122,7 @@ export default function EngagementTypesManager() {
 
   const handleDelete = (type: EngagementType) => {
     if (window.confirm(`Are you sure you want to delete "${type.name}"? This action cannot be undone.`)) {
-      deleteMutation.mutate(type.id)
+      deleteMutation.mutate({ id: type.id, typeName: type.name })
     }
   }
 
@@ -105,6 +137,82 @@ export default function EngagementTypesManager() {
       is_active: true
     })
   }
+
+  const handleDownloadCSV = () => {
+    const columnMapping = {
+      name: 'Name',
+      description: 'Description',
+      default_duration_hours: 'Default Duration (Hours)',
+      sort_order: 'Sort Order',
+      is_active: 'Active',
+      created_at: 'Created Date',
+      updated_at: 'Updated Date'
+    }
+    
+    CsvService.downloadCSV(engagementTypes, 'engagement_types', columnMapping)
+    
+    auditService.logAction(
+      'system-user',
+      'System User',
+      'EXPORT',
+      'engagement_type',
+      `Exported ${engagementTypes.length} engagement types to CSV`
+    )
+  }
+
+  const handleUploadCSV = CsvService.createUploadHandler<Partial<EngagementType>>(
+    (data) => {
+      const validTypes = data.filter(type => type.name && type.name.trim())
+      
+      if (validTypes.length === 0) {
+        alert('No valid engagement types found in CSV')
+        return
+      }
+
+      if (window.confirm(`Import ${validTypes.length} engagement types? This will add new types to the system.`)) {
+        Promise.all(
+          validTypes.map(typeData => 
+            engagementTypesApi.create({
+              name: typeData.name!.trim(),
+              description: typeData.description || null,
+              default_duration_hours: typeData.default_duration_hours || null,
+              sort_order: typeData.sort_order || (engagementTypes.length + 1),
+              is_active: typeData.is_active !== false
+            })
+          )
+        ).then(() => {
+          auditService.logAction(
+            'system-user',
+            'System User',
+            'IMPORT',
+            'engagement_type',
+            `Imported ${validTypes.length} engagement types from CSV`
+          )
+          queryClient.invalidateQueries(['engagement-types-all'])
+          queryClient.invalidateQueries(['engagement-types'])
+        }).catch(error => {
+          console.error('Import error:', error)
+          alert('Error importing data. Check console for details.')
+        })
+      }
+    },
+    {
+      'Name': 'name',
+      'Description': 'description', 
+      'Default Duration (Hours)': 'default_duration_hours',
+      'Sort Order': 'sort_order',
+      'Active': 'is_active'
+    },
+    (data) => {
+      const errors: string[] = []
+      data.forEach((item, index) => {
+        if (!item.name || !item.name.trim()) {
+          errors.push(`Row ${index + 1}: Name is required`)
+        }
+      })
+      return { valid: errors.length === 0, errors }
+    }
+  )
 
   if (isLoading) {
     return (
@@ -171,23 +279,64 @@ export default function EngagementTypesManager() {
           }}>
             Engagement Types Manager
           </h2>
-          <button
-            onClick={() => setShowAddForm(true)}
-            disabled={showAddForm}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: 'white',
-              background: showAddForm ? '#94a3b8' : '#10b981',
-              border: 'none',
-              cursor: showAddForm ? 'not-allowed' : 'pointer',
-              fontFamily: 'Trebuchet MS, Arial, sans-serif'
-            }}
-          >
-            + Add New Type
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={handleDownloadCSV}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'white',
+                background: '#3b82f6',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}
+            >
+              📥 Download CSV
+            </button>
+            <input
+              ref={csvFileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleUploadCSV}
+              style={{ display: 'none' }}
+            />
+            <button
+              onClick={() => csvFileInputRef.current?.click()}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'white',
+                background: '#f59e0b',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}
+            >
+              📤 Upload CSV
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              disabled={showAddForm}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'white',
+                background: showAddForm ? '#94a3b8' : '#10b981',
+                border: 'none',
+                cursor: showAddForm ? 'not-allowed' : 'pointer',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}
+            >
+              + Add New Type
+            </button>
+          </div>
         </div>
         <p style={{
           margin: '0',

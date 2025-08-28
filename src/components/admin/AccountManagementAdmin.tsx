@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, type CreateAccountData, type UpdateAccountData } from '../../api/accounts'
 import type { Account } from '../../api/types'
+import { auditService } from '../../services/auditService'
+import { CsvService } from '../../services/csvService'
 
 type SortOption = {
   column: string
@@ -50,6 +52,7 @@ export default function AccountManagementAdmin() {
   const [sortConfig, setSortConfig] = useState<SortOption>({ column: '', direction: 'none' })
   const [segmentFilter, setSegmentFilter] = useState<string>('ALL')
   const queryClient = useQueryClient()
+  const csvFileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -76,24 +79,52 @@ export default function AccountManagementAdmin() {
   // Create account mutation
   const createMutation = useMutation({
     mutationFn: accountsApi.create,
-    onSuccess: () => {
+    onSuccess: (newAccount) => {
+      auditService.logAction(
+        'system-user',
+        'System User',
+        'CREATE',
+        'account',
+        `Created account: ${newAccount.name}`,
+        newAccount.id
+      )
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
     },
   })
 
   // Update account mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateAccountData }) => 
+    mutationFn: ({ id, data, originalAccount }: { id: string; data: UpdateAccountData; originalAccount?: Account }) => 
       accountsApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: (updatedAccount, variables) => {
+      const changes = variables.originalAccount ? auditService.generateChanges(variables.originalAccount, updatedAccount) : []
+      auditService.logAction(
+        'system-user',
+        'System User',
+        'UPDATE',
+        'account',
+        `Updated account: ${updatedAccount.name}`,
+        updatedAccount.id,
+        changes
+      )
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
     },
   })
 
   // Delete account mutation
   const deleteMutation = useMutation({
-    mutationFn: accountsApi.delete,
-    onSuccess: () => {
+    mutationFn: ({ id, accountName }: { id: string; accountName: string }) => {
+      return accountsApi.delete(id)
+    },
+    onSuccess: (_, variables) => {
+      auditService.logAction(
+        'system-user',
+        'System User',
+        'DELETE',
+        'account',
+        `Deleted account: ${variables.accountName}`,
+        variables.id
+      )
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
     },
   })
@@ -111,7 +142,8 @@ export default function AccountManagementAdmin() {
     if (editingAccount && formData.name) {
       updateMutation.mutate({ 
         id: editingAccount.id, 
-        data: formData as UpdateAccountData 
+        data: formData as UpdateAccountData,
+        originalAccount: editingAccount
       })
       handleCancel()
     }
@@ -177,7 +209,7 @@ export default function AccountManagementAdmin() {
 
   const handleDelete = (account: Account) => {
     if (window.confirm(`Are you sure you want to delete "${account.name}"? This action cannot be undone.`)) {
-      deleteMutation.mutate(account.id)
+      deleteMutation.mutate({ id: account.id, accountName: account.name })
     }
   }
 
@@ -237,6 +269,105 @@ export default function AccountManagementAdmin() {
       return 0
     })
   }, [accounts, segmentFilter, sortConfig])
+
+  const handleDownloadCSV = () => {
+    const columnMapping = {
+      name: 'Account Name',
+      segment: 'Segment',
+      region: 'Region',
+      account_type: 'Account Type',
+      industry: 'Industry',
+      address_street: 'Street Address',
+      address_city: 'City',
+      address_state: 'State',
+      address_zip: 'ZIP Code',
+      primary_contact_name: 'Primary Contact Name',
+      primary_contact_title: 'Primary Contact Title',
+      primary_contact_email: 'Primary Contact Email',
+      account_note: 'Notes',
+      created_at: 'Created Date',
+      updated_at: 'Updated Date'
+    }
+    
+    CsvService.downloadCSV(filteredAndSortedAccounts, 'accounts', columnMapping)
+    
+    auditService.logAction(
+      'system-user',
+      'System User',
+      'EXPORT',
+      'account',
+      `Exported ${filteredAndSortedAccounts.length} accounts to CSV`
+    )
+  }
+
+  const handleUploadCSV = CsvService.createUploadHandler<Partial<Account>>(
+    (data) => {
+      const validAccounts = data.filter(acc => acc.name && acc.name.trim())
+      
+      if (validAccounts.length === 0) {
+        alert('No valid accounts found in CSV')
+        return
+      }
+
+      if (window.confirm(`Import ${validAccounts.length} accounts? This will add new accounts to the system.`)) {
+        Promise.all(
+          validAccounts.map(accData => 
+            accountsApi.create({
+              name: accData.name!.trim(),
+              segment: accData.segment || null,
+              region: accData.region || null,
+              account_type: accData.account_type || null,
+              industry: accData.industry || null,
+              address_street: accData.address_street || null,
+              address_city: accData.address_city || null,
+              address_state: accData.address_state || null,
+              address_zip: accData.address_zip || null,
+              primary_contact_name: accData.primary_contact_name || null,
+              primary_contact_title: accData.primary_contact_title || null,
+              primary_contact_email: accData.primary_contact_email || null,
+              account_note: accData.account_note || null
+            } as CreateAccountData)
+          )
+        ).then(() => {
+          auditService.logAction(
+            'system-user',
+            'System User',
+            'IMPORT',
+            'account',
+            `Imported ${validAccounts.length} accounts from CSV`
+          )
+          queryClient.invalidateQueries({ queryKey: ['accounts'] })
+        }).catch(error => {
+          console.error('Import error:', error)
+          alert('Error importing data. Check console for details.')
+        })
+      }
+    },
+    {
+      'Account Name': 'name',
+      'Segment': 'segment',
+      'Region': 'region',
+      'Account Type': 'account_type',
+      'Industry': 'industry',
+      'Street Address': 'address_street',
+      'City': 'address_city',
+      'State': 'address_state',
+      'ZIP Code': 'address_zip',
+      'Primary Contact Name': 'primary_contact_name',
+      'Primary Contact Title': 'primary_contact_title',
+      'Primary Contact Email': 'primary_contact_email',
+      'Notes': 'account_note'
+    },
+    (data) => {
+      const errors: string[] = []
+      data.forEach((item, index) => {
+        if (!item.name || !item.name.trim()) {
+          errors.push(`Row ${index + 1}: Account Name is required`)
+        }
+      })
+      return { valid: errors.length === 0, errors }
+    }
+  )
 
   if (isLoading) {
     return (
@@ -331,6 +462,45 @@ export default function AccountManagementAdmin() {
                 <option key={segment} value={segment}>{segment}</option>
               ))}
             </select>
+            <button
+              onClick={handleDownloadCSV}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'white',
+                background: '#3b82f6',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}
+            >
+              📥 Download CSV
+            </button>
+            <input
+              ref={csvFileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleUploadCSV}
+              style={{ display: 'none' }}
+            />
+            <button
+              onClick={() => csvFileInputRef.current?.click()}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'white',
+                background: '#f59e0b',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}
+            >
+              📤 Upload CSV
+            </button>
             <button
               onClick={() => setShowAddForm(true)}
               disabled={showAddForm || editingAccount !== null}
