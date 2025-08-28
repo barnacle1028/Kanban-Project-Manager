@@ -29,8 +29,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ account, isOpen, on
 
   useEffect(() => {
     if (account) {
+      console.log('Setting form data for account:', account)
       setFormData({
-        name: account.name,
+        name: account.name || '',
         segment: account.segment || '',
         region: account.region || '',
         account_type: account.account_type || '',
