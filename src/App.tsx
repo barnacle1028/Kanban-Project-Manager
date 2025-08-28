@@ -4,7 +4,7 @@ import { useEngagements, useEngagement } from './hooks/useEngagements'
 import type { EngagementWithMilestones } from './api/types'
 import UserRoleManagement from './components/admin/UserRoleManagement'
 import AdminPanel from './components/admin/AdminPanel'
-import ClientAccountsManager from './components/admin/ClientAccountsManager'
+import TabbedManagementInterface from './components/admin/TabbedManagementInterface'
 import PasswordReset from './components/auth/PasswordReset'
 import PasswordResetConfirm from './components/auth/PasswordResetConfirm'
 import UserSettings from './components/user/UserSettings'
@@ -483,12 +483,12 @@ function NavigationMenu({ user }: { user: any }) {
     }
 
     if (isChris) {
-      items.push({ id: 'accounts', label: '🏢 Account Management', roles: ['ADMIN'] })
+      items.push({ id: 'business', label: '🏢 Business Management', roles: ['ADMIN'] })
       items.push({ id: 'admin', label: '⚙️ Administration', roles: ['ADMIN'] })
     }
 
     const filtered = items.filter(item => 
-      item.roles.includes(user.role) || ((item.id === 'admin' || item.id === 'accounts') && isChris)
+      item.roles.includes(user.role) || ((item.id === 'admin' || item.id === 'business') && isChris)
     )
 
     return [items, filtered]
@@ -541,8 +541,8 @@ function AppContent({ user }: { user: any }) {
     case 'team':
       return <TeamManagement user={user} />
     
-    case 'accounts':
-      return <ClientAccountsManager />
+    case 'business':
+      return <BusinessManagementView user={user} />
     
     case 'admin':
       return <AdminPanel />
@@ -742,6 +742,45 @@ function EngagementDetail({ engagement, onBack }: { engagement: any, onBack: () 
         ))}
       </div>
     </div>
+  )
+}
+
+function BusinessManagementView({ user }: { user: any }) {
+  // Since we need engagement data for the tabbed interface, we'll use mock data for now
+  // In a real implementation, this would come from useEngagements hook
+  const mockEngagements: any[] = []
+  const mockReps: any[] = []
+  
+  const handleAddEngagement = (engagement: any) => {
+    console.log('Add engagement:', engagement)
+    // In a real implementation, this would call an API
+  }
+  
+  const handleUpdateEngagement = (id: string, updates: any) => {
+    console.log('Update engagement:', id, updates)
+    // In a real implementation, this would call an API
+  }
+  
+  const handleDeleteEngagement = (id: string) => {
+    console.log('Delete engagement:', id)
+    // In a real implementation, this would call an API
+  }
+  
+  const handleBackToManager = () => {
+    // This would navigate back to the manager dashboard
+    // For now, we'll just log it
+    console.log('Back to manager dashboard')
+  }
+  
+  return (
+    <TabbedManagementInterface
+      engagements={mockEngagements}
+      reps={mockReps}
+      onAddEngagement={handleAddEngagement}
+      onUpdateEngagement={handleUpdateEngagement}
+      onDeleteEngagement={handleDeleteEngagement}
+      onBackToManager={handleBackToManager}
+    />
   )
 }
 
