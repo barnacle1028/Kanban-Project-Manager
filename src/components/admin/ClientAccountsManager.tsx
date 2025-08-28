@@ -502,9 +502,8 @@ const ClientAccountsManager: React.FC = () => {
                   </tr>
                 ))
               )}
-          </tbody>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
         </div>
       </div>
 
