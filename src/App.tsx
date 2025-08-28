@@ -4,7 +4,7 @@ import { useEngagements, useEngagement } from './hooks/useEngagements'
 import type { EngagementWithMilestones } from './api/types'
 import UserRoleManagement from './components/admin/UserRoleManagement'
 import AdminPanel from './components/admin/AdminPanel'
-import AccountManagement from './components/admin/AccountManagement'
+import ClientAccountsManager from './components/admin/ClientAccountsManager'
 import PasswordReset from './components/auth/PasswordReset'
 import PasswordResetConfirm from './components/auth/PasswordResetConfirm'
 import UserSettings from './components/user/UserSettings'
@@ -542,7 +542,7 @@ function AppContent({ user }: { user: any }) {
       return <TeamManagement user={user} />
     
     case 'accounts':
-      return <AccountManagement />
+      return <ClientAccountsManager />
     
     case 'admin':
       return <AdminPanel />
