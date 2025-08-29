@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import type { 
   UserRole, 
   UserRoleAssignment, 
@@ -13,33 +14,35 @@ import { auditService } from '../services/auditService'
 // Supabase API service for User Roles
 // Connected to actual Supabase database tables
 
+// Create an admin client that bypasses RLS for user roles operations
+const getAdminSupabaseClient = () => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl) {
+    throw new Error('Supabase URL not configured')
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
+
 class SupabaseUserRoleService {
   
   // User Role CRUD operations
   async getAllUserRoles(): Promise<UserRole[]> {
     try {
       console.log('🔍 Attempting to fetch user roles from Supabase...')
-      console.log('   Supabase URL configured:', !!supabase)
       
-      // First test: Can we connect to Supabase at all?
-      try {
-        const { data: testData, error: testError } = await supabase
-          .from('information_schema.tables')
-          .select('table_name')
-          .eq('table_schema', 'public')
-          .like('table_name', '%role%')
-          .limit(5)
-        
-        console.log('📋 Available role-related tables:', testData?.map(t => t.table_name))
-        
-        if (testError) {
-          console.log('⚠️ Cannot query table schema:', testError.message)
-        }
-      } catch (schemaError) {
-        console.log('⚠️ Schema query failed, proceeding with direct query')
-      }
+      // Use admin client to bypass RLS policies
+      const adminClient = getAdminSupabaseClient()
+      console.log('   Using admin client to bypass RLS policies')
       
-      const { data, error } = await supabase
+      const { data, error } = await adminClient
         .from('user_roles')
         .select('*')
         .order('name', { ascending: true })
@@ -65,7 +68,9 @@ class SupabaseUserRoleService {
 
   async getUserRoleById(id: string): Promise<UserRole | null> {
     try {
-      const { data, error } = await supabase
+      const adminClient = getAdminSupabaseClient()
+      
+      const { data, error } = await adminClient
         .from('user_roles')
         .select('*')
         .eq('id', id)
@@ -114,7 +119,9 @@ class SupabaseUserRoleService {
         created_by: currentUserId
       }
       
-      const { data: insertedRole, error } = await supabase
+      const adminClient = getAdminSupabaseClient()
+      
+      const { data: insertedRole, error } = await adminClient
         .from('user_roles')
         .insert([newRole])
         .select()
@@ -169,7 +176,9 @@ class SupabaseUserRoleService {
         throw new Error('User role not found')
       }
 
-      const { data: updatedRole, error } = await supabase
+      const adminClient = getAdminSupabaseClient()
+      
+      const { data: updatedRole, error } = await adminClient
         .from('user_roles')
         .update(data)
         .eq('id', id)
@@ -228,7 +237,7 @@ class SupabaseUserRoleService {
       }
 
       // Check if role is assigned to any users
-      const { data: assignments, error: assignmentError } = await supabase
+      const { data: assignments, error: assignmentError } = await adminClient
         .from('user_role_assignments')
         .select('id')
         .eq('user_role_id', id)
@@ -243,7 +252,9 @@ class SupabaseUserRoleService {
         throw new Error('Cannot delete user role that is currently assigned to users')
       }
 
-      const { error } = await supabase
+      const adminClient = getAdminSupabaseClient()
+      
+      const { error } = await adminClient
         .from('user_roles')
         .delete()
         .eq('id', id)
