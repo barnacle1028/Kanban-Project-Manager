@@ -7,19 +7,16 @@ import type {
   AssignUserRoleRequest,
   UserWithRole
 } from '../types/userRoles'
-import { auditService } from '../services/auditService'
+import { supabaseUserRoleService } from './supabaseUserRoles'
 
-// Mock API service for User Roles
-// In a real application, this would make HTTP calls to your backend
+// User Roles API service - now connected to Supabase
+// This service wraps the Supabase service and provides the same interface
 
 class UserRoleService {
-  private baseUrl = '/api/user-roles'
-
   // User Role CRUD operations
   async getAllUserRoles(): Promise<UserRole[]> {
     try {
-      // Mock data - replace with actual API call
-      return mockUserRoles
+      return await supabaseUserRoleService.getAllUserRoles()
     } catch (error) {
       console.error('Error fetching user roles:', error)
       throw new Error('Failed to fetch user roles')
@@ -28,8 +25,7 @@ class UserRoleService {
 
   async getUserRoleById(id: string): Promise<UserRole | null> {
     try {
-      // Mock implementation
-      return mockUserRoles.find(role => role.id === id) || null
+      return await supabaseUserRoleService.getUserRoleById(id)
     } catch (error) {
       console.error('Error fetching user role:', error)
       throw new Error('Failed to fetch user role')
@@ -38,33 +34,7 @@ class UserRoleService {
 
   async createUserRole(data: CreateUserRoleRequest): Promise<UserRole> {
     try {
-      // Mock implementation - replace with actual API call
-      const newRole: UserRole = {
-        id: `role-${Date.now()}`,
-        name: data.name,
-        role_type: data.role_type,
-        description: data.description,
-        is_active: true,
-        dashboard_access: data.dashboard_access,
-        permissions: data.permissions,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: 'current-user-id' // This would come from auth context
-      }
-      
-      mockUserRoles.push(newRole)
-      
-      // Log audit trail
-      await auditService.logAction(
-        'current-user-id', // In real app, get from auth context
-        'Chris Administrator', // In real app, get from auth context
-        'create_role',
-        'user_role',
-        `Created new user role: ${newRole.name} (${newRole.role_type})`,
-        newRole.id
-      )
-      
-      return newRole
+      return await supabaseUserRoleService.createUserRole(data)
     } catch (error) {
       console.error('Error creating user role:', error)
       throw new Error('Failed to create user role')
@@ -73,34 +43,7 @@ class UserRoleService {
 
   async updateUserRole(id: string, data: UpdateUserRoleRequest): Promise<UserRole> {
     try {
-      // Mock implementation
-      const roleIndex = mockUserRoles.findIndex(role => role.id === id)
-      if (roleIndex === -1) {
-        throw new Error('User role not found')
-      }
-
-      const originalRole = { ...mockUserRoles[roleIndex] }
-      const updatedRole = {
-        ...mockUserRoles[roleIndex],
-        ...data,
-        updated_at: new Date().toISOString()
-      }
-
-      mockUserRoles[roleIndex] = updatedRole
-      
-      // Log audit trail with changes
-      const changes = auditService.generateChanges(originalRole, updatedRole)
-      await auditService.logAction(
-        'current-user-id', // In real app, get from auth context
-        'Chris Administrator', // In real app, get from auth context
-        'update_role',
-        'user_role',
-        `Updated user role: ${updatedRole.name} (${updatedRole.role_type})`,
-        id,
-        changes
-      )
-      
-      return updatedRole
+      return await supabaseUserRoleService.updateUserRole(id, data)
     } catch (error) {
       console.error('Error updating user role:', error)
       throw new Error('Failed to update user role')
@@ -109,35 +52,7 @@ class UserRoleService {
 
   async deleteUserRole(id: string): Promise<boolean> {
     try {
-      // Mock implementation
-      const roleIndex = mockUserRoles.findIndex(role => role.id === id)
-      if (roleIndex === -1) {
-        throw new Error('User role not found')
-      }
-
-      // Check if role is assigned to any users
-      const hasAssignments = mockUserRoleAssignments.some(
-        assignment => assignment.user_role_id === id && assignment.is_active
-      )
-
-      if (hasAssignments) {
-        throw new Error('Cannot delete user role that is currently assigned to users')
-      }
-
-      const role = mockUserRoles[roleIndex]
-      mockUserRoles.splice(roleIndex, 1)
-      
-      // Log audit trail
-      await auditService.logAction(
-        'current-user-id', // In real app, get from auth context
-        'Chris Administrator', // In real app, get from auth context
-        'delete_role',
-        'user_role',
-        `Deleted user role: ${role.name} (${role.role_type})`,
-        id
-      )
-      
-      return true
+      return await supabaseUserRoleService.deleteUserRole(id)
     } catch (error) {
       console.error('Error deleting user role:', error)
       throw new Error('Failed to delete user role')
@@ -147,11 +62,7 @@ class UserRoleService {
   // User Role Assignment operations
   async getUserRoleAssignments(userId?: string): Promise<UserRoleAssignment[]> {
     try {
-      // Mock implementation
-      if (userId) {
-        return mockUserRoleAssignments.filter(assignment => assignment.user_id === userId)
-      }
-      return mockUserRoleAssignments
+      return await supabaseUserRoleService.getUserRoleAssignments(userId)
     } catch (error) {
       console.error('Error fetching role assignments:', error)
       throw new Error('Failed to fetch role assignments')
@@ -160,47 +71,7 @@ class UserRoleService {
 
   async assignUserRole(data: AssignUserRoleRequest): Promise<UserRoleAssignment> {
     try {
-      // Mock implementation
-      // First, deactivate any existing active assignments for this user
-      mockUserRoleAssignments.forEach(assignment => {
-        if (assignment.user_id === data.user_id && assignment.is_active) {
-          assignment.is_active = false
-          assignment.effective_until = new Date().toISOString()
-        }
-      })
-
-      const newAssignment: UserRoleAssignment = {
-        id: `assignment-${Date.now()}`,
-        user_id: data.user_id,
-        user_role_id: data.user_role_id,
-        assigned_at: new Date().toISOString(),
-        assigned_by: 'current-user-id', // This would come from auth context
-        is_active: true,
-        effective_from: data.effective_from,
-        effective_until: data.effective_until
-      }
-
-      mockUserRoleAssignments.push(newAssignment)
-
-      // Log the change
-      await this.logRoleChange({
-        user_id: data.user_id,
-        new_role_id: data.user_role_id,
-        reason: data.reason || 'Role assignment'
-      })
-      
-      // Log audit trail
-      const role = mockUserRoles.find(r => r.id === data.user_role_id)
-      await auditService.logAction(
-        'current-user-id', // In real app, get from auth context
-        'Chris Administrator', // In real app, get from auth context
-        'assign_role',
-        'user_role',
-        `Assigned role ${role?.name || 'Unknown'} to user`,
-        data.user_role_id
-      )
-
-      return newAssignment
+      return await supabaseUserRoleService.assignUserRole(data)
     } catch (error) {
       console.error('Error assigning user role:', error)
       throw new Error('Failed to assign user role')
@@ -209,15 +80,7 @@ class UserRoleService {
 
   async deactivateUserRoleAssignment(assignmentId: string): Promise<boolean> {
     try {
-      // Mock implementation
-      const assignment = mockUserRoleAssignments.find(a => a.id === assignmentId)
-      if (!assignment) {
-        throw new Error('Role assignment not found')
-      }
-
-      assignment.is_active = false
-      assignment.effective_until = new Date().toISOString()
-      return true
+      return await supabaseUserRoleService.deactivateUserRoleAssignment(assignmentId)
     } catch (error) {
       console.error('Error deactivating role assignment:', error)
       throw new Error('Failed to deactivate role assignment')
@@ -227,54 +90,18 @@ class UserRoleService {
   // Change Log operations
   async getUserRoleChangeLogs(userId?: string): Promise<UserRoleChangeLog[]> {
     try {
-      // Mock implementation
-      if (userId) {
-        return mockUserRoleChangeLogs.filter(log => log.user_id === userId)
-      }
-      return mockUserRoleChangeLogs
+      return await supabaseUserRoleService.getUserRoleChangeLogs(userId)
     } catch (error) {
       console.error('Error fetching role change logs:', error)
       throw new Error('Failed to fetch role change logs')
     }
   }
 
-  async logRoleChange(data: {
-    user_id: string
-    previous_role_id?: string
-    new_role_id: string
-    reason?: string
-  }): Promise<UserRoleChangeLog> {
-    try {
-      // Mock implementation
-      const newLog: UserRoleChangeLog = {
-        id: `log-${Date.now()}`,
-        user_id: data.user_id,
-        previous_role_id: data.previous_role_id,
-        new_role_id: data.new_role_id,
-        changed_by: 'current-user-id', // This would come from auth context
-        changed_at: new Date().toISOString(),
-        reason: data.reason,
-        is_deprecated: false
-      }
-
-      mockUserRoleChangeLogs.push(newLog)
-      return newLog
-    } catch (error) {
-      console.error('Error logging role change:', error)
-      throw new Error('Failed to log role change')
-    }
-  }
+  // Note: Role change logging is now handled automatically by the database triggers
 
   async deprecateRoleChangeLog(logId: string): Promise<boolean> {
     try {
-      // Mock implementation
-      const log = mockUserRoleChangeLogs.find(l => l.id === logId)
-      if (!log) {
-        throw new Error('Role change log not found')
-      }
-
-      log.is_deprecated = true
-      return true
+      return await supabaseUserRoleService.deprecateRoleChangeLog(logId)
     } catch (error) {
       console.error('Error deprecating role change log:', error)
       throw new Error('Failed to deprecate role change log')
@@ -284,32 +111,7 @@ class UserRoleService {
   // Helper methods
   async getUsersWithRoles(): Promise<UserWithRole[]> {
     try {
-      // Mock implementation - this would typically be a database view or join query
-      const usersWithRoles: UserWithRole[] = []
-      
-      // This is a simplified mock - in reality you'd get this from your user service
-      const mockUsers = [
-        { id: 'user-1', name: 'Chris', email: 'chris@company.com', created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
-        { id: 'user-2', name: 'Derek', email: 'derek@company.com', created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
-        { id: 'user-3', name: 'Rolando', email: 'rolando@company.com', created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' }
-      ]
-
-      for (const user of mockUsers) {
-        const activeAssignment = mockUserRoleAssignments.find(
-          a => a.user_id === user.id && a.is_active
-        )
-        const userRole = activeAssignment ? 
-          mockUserRoles.find(r => r.id === activeAssignment.user_role_id) : 
-          undefined
-
-        usersWithRoles.push({
-          ...user,
-          role_assignment: activeAssignment,
-          user_role: userRole
-        })
-      }
-
-      return usersWithRoles
+      return await supabaseUserRoleService.getUsersWithRoles()
     } catch (error) {
       console.error('Error fetching users with roles:', error)
       throw new Error('Failed to fetch users with roles')
@@ -318,156 +120,23 @@ class UserRoleService {
 
   async getRoleStatistics() {
     try {
-      const roles = await this.getAllUserRoles()
-      const assignments = await this.getUserRoleAssignments()
-      
-      return roles.map(role => ({
-        role,
-        total_assignments: assignments.filter(a => a.user_role_id === role.id).length,
-        active_assignments: assignments.filter(a => a.user_role_id === role.id && a.is_active).length
-      }))
+      return await supabaseUserRoleService.getRoleStatistics()
     } catch (error) {
       console.error('Error fetching role statistics:', error)
       throw new Error('Failed to fetch role statistics')
     }
   }
+
+  // Alias method for compatibility with existing components
+  async getAllRoles() {
+    try {
+      const roles = await this.getAllUserRoles()
+      return { roles }
+    } catch (error) {
+      console.error('Error fetching roles:', error)
+      throw new Error('Failed to fetch roles')
+    }
+  }
 }
 
-// Mock data for development/testing
-const mockUserRoles: UserRole[] = [
-  {
-    id: 'role-admin-1',
-    name: 'System Administrator',
-    role_type: 'Admin',
-    description: 'Full system access with all administrative privileges',
-    is_active: true,
-    dashboard_access: 'Admin',
-    permissions: {
-      can_access_admin_dashboard: true,
-      can_access_manager_dashboard: true,
-      can_access_rep_dashboard: true,
-      can_create_users: true,
-      can_edit_users: true,
-      can_delete_users: true,
-      can_assign_roles: true,
-      can_create_engagements: true,
-      can_edit_all_engagements: true,
-      can_edit_own_engagements: true,
-      can_delete_engagements: true,
-      can_view_all_engagements: true,
-      can_view_team_engagements: true,
-      can_view_own_engagements: true,
-      can_manage_user_roles: true,
-      can_view_system_logs: true,
-      can_manage_system_settings: true,
-      can_view_all_reports: true,
-      can_view_team_reports: true,
-      can_export_data: true
-    },
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    created_by: 'user-1'
-  },
-  {
-    id: 'role-manager-1',
-    name: 'Team Manager',
-    role_type: 'Manager',
-    description: 'Manage team members and view team engagements',
-    is_active: true,
-    dashboard_access: 'Manager',
-    permissions: {
-      can_access_admin_dashboard: false,
-      can_access_manager_dashboard: true,
-      can_access_rep_dashboard: true,
-      can_create_users: false,
-      can_edit_users: false,
-      can_delete_users: false,
-      can_assign_roles: false,
-      can_create_engagements: true,
-      can_edit_all_engagements: false,
-      can_edit_own_engagements: true,
-      can_delete_engagements: false,
-      can_view_all_engagements: false,
-      can_view_team_engagements: true,
-      can_view_own_engagements: true,
-      can_manage_user_roles: false,
-      can_view_system_logs: false,
-      can_manage_system_settings: false,
-      can_view_all_reports: false,
-      can_view_team_reports: true,
-      can_export_data: true
-    },
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    created_by: 'user-1'
-  },
-  {
-    id: 'role-consultant-1',
-    name: 'Sales Consultant',
-    role_type: 'Consultant',
-    description: 'Manage own engagements and client interactions',
-    is_active: true,
-    dashboard_access: 'Rep',
-    permissions: {
-      can_access_admin_dashboard: false,
-      can_access_manager_dashboard: false,
-      can_access_rep_dashboard: true,
-      can_create_users: false,
-      can_edit_users: false,
-      can_delete_users: false,
-      can_assign_roles: false,
-      can_create_engagements: false,
-      can_edit_all_engagements: false,
-      can_edit_own_engagements: true,
-      can_delete_engagements: false,
-      can_view_all_engagements: false,
-      can_view_team_engagements: false,
-      can_view_own_engagements: true,
-      can_manage_user_roles: false,
-      can_view_system_logs: false,
-      can_manage_system_settings: false,
-      can_view_all_reports: false,
-      can_view_team_reports: false,
-      can_export_data: false
-    },
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    created_by: 'user-1'
-  }
-]
-
-const mockUserRoleAssignments: UserRoleAssignment[] = [
-  {
-    id: 'assignment-1',
-    user_id: 'user-1',
-    user_role_id: 'role-admin-1',
-    assigned_at: '2024-01-01T00:00:00Z',
-    assigned_by: 'user-1',
-    is_active: true,
-    effective_from: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: 'assignment-2',
-    user_id: 'user-2',
-    user_role_id: 'role-manager-1',
-    assigned_at: '2024-01-01T00:00:00Z',
-    assigned_by: 'user-1',
-    is_active: true,
-    effective_from: '2024-01-01T00:00:00Z'
-  }
-]
-
-const mockUserRoleChangeLogs: UserRoleChangeLog[] = [
-  {
-    id: 'log-1',
-    user_id: 'user-1',
-    new_role_id: 'role-admin-1',
-    changed_by: 'user-1',
-    changed_at: '2024-01-01T00:00:00Z',
-    reason: 'Initial system setup',
-    is_deprecated: false
-  }
-]
-
 export const userRoleService = new UserRoleService()
-export { mockUserRoles, mockUserRoleAssignments, mockUserRoleChangeLogs }
