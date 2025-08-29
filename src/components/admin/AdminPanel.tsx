@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import UserRoleManagement from './UserRoleManagement'
+import SimpleUserRoles from './SimpleUserRoles'
 import ComprehensiveUserManagement from './UserManagement'
 import { userManagementService } from '../../api/userManagement'
 import { userRoleService } from '../../api/userRoles'
@@ -90,7 +91,7 @@ function SettingsPanel() {
 }
 
 function UserRolesSettings() {
-  return <UserRoleManagement onClose={() => {}} />
+  return <SimpleUserRoles />
 }
 
 function UserManagementWrapper() {

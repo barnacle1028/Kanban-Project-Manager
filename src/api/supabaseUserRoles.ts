@@ -85,6 +85,9 @@ class SupabaseUserRoleService {
       }
       
       console.log('✅ Successfully fetched user roles:', data?.length || 0, 'roles')
+      if (data && data.length > 0) {
+        console.log('🎯 First role details:', data[0])
+      }
       return data || []
     } catch (error) {
       console.error('💥 Exception in getAllUserRoles:', error)
