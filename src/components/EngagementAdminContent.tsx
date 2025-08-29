@@ -144,6 +144,7 @@ export default function EngagementAdminContent({
     accountName: '',
     assignedRep: '',
     status: 'NEW' as ProjectStatus,
+    health: 'GREEN' as 'GREEN' | 'YELLOW' | 'RED',
     startDate: '',
     closeDate: '',
     salesType: 'Direct Sell' as SalesType,
@@ -179,8 +180,7 @@ export default function EngagementAdminContent({
     e.preventDefault()
     if (formData.name && formData.accountName) {
       const newEngagement = {
-        ...formData,
-        health: 'GREEN' as const
+        ...formData
       }
       onAddEngagement(newEngagement)
       
@@ -196,6 +196,7 @@ export default function EngagementAdminContent({
         accountName: '',
         assignedRep: '',
         status: 'NEW',
+        health: 'GREEN',
         startDate: '',
         closeDate: '',
         salesType: 'Direct Sell',
@@ -225,6 +226,7 @@ export default function EngagementAdminContent({
       accountName: '',
       assignedRep: '',
       status: 'NEW',
+      health: 'GREEN',
       startDate: '',
       closeDate: '',
       salesType: 'Direct Sell',
@@ -583,213 +585,689 @@ export default function EngagementAdminContent({
             Add New Engagement
           </h3>
           <form onSubmit={handleSubmitAdd}>
+            {/* Basic Information Section */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: '16px',
-              marginBottom: '16px'
+              marginBottom: '24px',
+              paddingBottom: '16px',
+              borderBottom: '2px solid #68BA7F'
             }}>
-              {/* Basic Info */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#253D2C',
-                  marginBottom: '4px',
-                  fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                }}>
-                  Company Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.accountName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, accountName: e.target.value }))}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '14px',
+              <h4 style={{
+                margin: '0 0 16px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#68BA7F',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}>
+                Basic Information
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '16px',
+                marginBottom: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
                     fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                  }}
-                />
+                  }}>
+                    Engagement Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Enter engagement name"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Account Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.accountName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, accountName: e.target.value }))}
+                    placeholder="Enter account name"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#253D2C',
-                  marginBottom: '4px',
-                  fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                }}>
-                  Project Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '14px',
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
                     fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                  }}
-                />
-              </div>
+                  }}>
+                    Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as ProjectStatus }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  >
+                    {STATUS_OPTIONS.map(status => (
+                      <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#253D2C',
-                  marginBottom: '4px',
-                  fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                }}>
-                  Assigned Rep
-                </label>
-                <select
-                  value={formData.assignedRep}
-                  onChange={(e) => setFormData(prev => ({ ...prev, assignedRep: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '14px',
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
                     fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                  }}
-                >
-                  <option value="">Select Assigned Rep</option>
-                  {activeUsers.map(user => (
-                    <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
-                      {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  }}>
+                    Health
+                  </label>
+                  <select
+                    value={formData.health || 'GREEN'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, health: e.target.value as 'GREEN' | 'YELLOW' | 'RED' }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  >
+                    <option value="GREEN">Green</option>
+                    <option value="YELLOW">Yellow</option>
+                    <option value="RED">Red</option>
+                  </select>
+                </div>
 
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#253D2C',
-                  marginBottom: '4px',
-                  fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                }}>
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as ProjectStatus }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '14px',
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
                     fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                  }}
-                >
-                  {STATUS_OPTIONS.map(status => (
-                    <option key={status} value={status}>{status.replace('_', ' ')}</option>
-                  ))}
-                </select>
+                  }}>
+                    Assigned Rep
+                  </label>
+                  <select
+                    value={formData.assignedRep}
+                    onChange={(e) => setFormData(prev => ({ ...prev, assignedRep: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  >
+                    <option value="">Select Assigned Rep</option>
+                    {activeUsers.map(user => (
+                      <option key={user.id} value={`${user.first_name} ${user.last_name}`}>
+                        {user.first_name} {user.last_name} ({user.job_title || 'No Title'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
+            </div>
 
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#253D2C',
-                  marginBottom: '4px',
-                  fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                }}>
-                  Engagement Type
-                </label>
-                <select
-                  value={formData.engagementType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, engagementType: e.target.value }))}
-                  disabled={engagementTypesLoading}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
+            {/* Timeline Section */}
+            <div style={{
+              marginBottom: '24px',
+              paddingBottom: '16px',
+              borderBottom: '2px solid #68BA7F'
+            }}>
+              <h4 style={{
+                margin: '0 0 16px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#68BA7F',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}>
+                Timeline
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                gap: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Close Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.closeDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, closeDate: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Sales Type
+                  </label>
+                  <select
+                    value={formData.salesType}
+                    onChange={(e) => setFormData(prev => ({ ...prev, salesType: e.target.value as SalesType }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  >
+                    <option value="Direct Sell">Direct Sell</option>
+                    <option value="Partner Sell">Partner Sell</option>
+                    <option value="Channel Sell">Channel Sell</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Speed
+                  </label>
+                  <select
+                    value={formData.speed}
+                    onChange={(e) => setFormData(prev => ({ ...prev, speed: e.target.value as Speed }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  >
+                    <option value="Slow">Slow</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Fast">Fast</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Project Details Section */}
+            <div style={{
+              marginBottom: '24px',
+              paddingBottom: '16px',
+              borderBottom: '2px solid #68BA7F'
+            }}>
+              <h4 style={{
+                margin: '0 0 16px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#68BA7F',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}>
+                Project Details
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                gap: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    CRM
+                  </label>
+                  <select
+                    value={formData.crm}
+                    onChange={(e) => setFormData(prev => ({ ...prev, crm: e.target.value as CRM }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  >
+                    <option value="Salesforce">Salesforce</option>
+                    <option value="HubSpot">HubSpot</option>
+                    <option value="Pipedrive">Pipedrive</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Sold By
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.soldBy}
+                    onChange={(e) => setFormData(prev => ({ ...prev, soldBy: e.target.value }))}
+                    placeholder="Enter who sold this"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Seat Count
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.seatCount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, seatCount: parseInt(e.target.value) || 0 }))}
+                    placeholder="Number of seats"
+                    min="0"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Hours Alloted
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.hoursAlloted}
+                    onChange={(e) => setFormData(prev => ({ ...prev, hoursAlloted: parseInt(e.target.value) || 0 }))}
+                    placeholder="Hours allotted"
+                    min="0"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Section */}
+            <div style={{
+              marginBottom: '24px',
+              paddingBottom: '16px',
+              borderBottom: '2px solid #68BA7F'
+            }}>
+              <h4 style={{
+                margin: '0 0 16px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#68BA7F',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}>
+                Contact
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Contact Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.primaryContactName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, primaryContactName: e.target.value }))}
+                    placeholder="Primary contact name"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Contact Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.primaryContactEmail}
+                    onChange={(e) => setFormData(prev => ({ ...prev, primaryContactEmail: e.target.value }))}
+                    placeholder="contact@company.com"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    LinkedIn
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.linkedinLink}
+                    onChange={(e) => setFormData(prev => ({ ...prev, linkedinLink: e.target.value }))}
+                    placeholder="LinkedIn profile URL"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Links Section */}
+            <div style={{
+              marginBottom: '24px',
+              paddingBottom: '16px',
+              borderBottom: '2px solid #68BA7F'
+            }}>
+              <h4 style={{
+                margin: '0 0 16px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#68BA7F',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}>
+                Links
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Avaza Project
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.avazaLink}
+                    onChange={(e) => setFormData(prev => ({ ...prev, avazaLink: e.target.value }))}
+                    placeholder="Avaza project URL"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Project Folder
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.projectFolderLink}
+                    onChange={(e) => setFormData(prev => ({ ...prev, projectFolderLink: e.target.value }))}
+                    placeholder="Project folder URL"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#253D2C',
+                    marginBottom: '4px',
+                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                  }}>
+                    Client Website
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.clientWebsiteLink}
+                    onChange={(e) => setFormData(prev => ({ ...prev, clientWebsiteLink: e.target.value }))}
+                    placeholder="Client website URL"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Trebuchet MS, Arial, sans-serif'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Add-ons Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <h4 style={{
+                margin: '0 0 16px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#68BA7F',
+                fontFamily: 'Trebuchet MS, Arial, sans-serif'
+              }}>
+                Add-ons
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '12px'
+              }}>
+                {(['Meet', 'AI Agents', 'Managed Services', 'Deal', 'Content', 'Forecasting', 'Migration'] as AddOn[]).map(addon => (
+                  <label key={addon} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                     fontSize: '14px',
+                    color: '#253D2C',
                     fontFamily: 'Trebuchet MS, Arial, sans-serif',
-                    opacity: engagementTypesLoading ? 0.6 : 1
-                  }}
-                >
-                  <option value="">Select Engagement Type</option>
-                  {engagementTypes.map(type => (
-                    <option key={type.id} value={type.name}>
-                      {type.name} {type.default_duration_hours ? `(${type.default_duration_hours}h)` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Dates */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#253D2C',
-                  marginBottom: '4px',
-                  fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                }}>
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '14px',
-                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#253D2C',
-                  marginBottom: '4px',
-                  fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                }}>
-                  Close Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.closeDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, closeDate: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '14px',
-                    fontFamily: 'Trebuchet MS, Arial, sans-serif'
-                  }}
-                />
+                    cursor: 'pointer'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.addOnsPurchased.includes(addon)}
+                      onChange={(e) => handleAddOnChange(addon, e.target.checked)}
+                      style={{ marginRight: '4px' }}
+                    />
+                    {addon}
+                  </label>
+                ))}
               </div>
             </div>
 
