@@ -19,7 +19,231 @@ interface CreateRoleData {
   role_type: 'Admin' | 'Manager' | 'Consultant' | 'Custom'
   description: string
   dashboard_access: 'Admin' | 'Manager' | 'Rep'
-  permissions: any
+  permissions: UserPermissions
+}
+
+interface UserPermissions {
+  // Dashboard Access
+  can_access_admin_dashboard: boolean
+  can_access_manager_dashboard: boolean
+  can_access_rep_dashboard: boolean
+  
+  // User Management
+  can_create_users: boolean
+  can_edit_users: boolean
+  can_delete_users: boolean
+  can_assign_roles: boolean
+  can_manage_user_roles: boolean
+  
+  // Engagement Management
+  can_create_engagements: boolean
+  can_edit_own_engagements: boolean
+  can_edit_all_engagements: boolean
+  can_delete_engagements: boolean
+  can_view_own_engagements: boolean
+  can_view_team_engagements: boolean
+  can_view_all_engagements: boolean
+  
+  // System & Reports
+  can_view_system_logs: boolean
+  can_manage_system_settings: boolean
+  can_view_team_reports: boolean
+  can_view_all_reports: boolean
+  can_export_data: boolean
+}
+
+const getDefaultPermissions = (roleType: string, dashboardAccess: string): UserPermissions => {
+  const basePermissions: UserPermissions = {
+    can_access_admin_dashboard: false,
+    can_access_manager_dashboard: false,
+    can_access_rep_dashboard: false,
+    can_create_users: false,
+    can_edit_users: false,
+    can_delete_users: false,
+    can_assign_roles: false,
+    can_manage_user_roles: false,
+    can_create_engagements: false,
+    can_edit_own_engagements: false,
+    can_edit_all_engagements: false,
+    can_delete_engagements: false,
+    can_view_own_engagements: false,
+    can_view_team_engagements: false,
+    can_view_all_engagements: false,
+    can_view_system_logs: false,
+    can_manage_system_settings: false,
+    can_view_team_reports: false,
+    can_view_all_reports: false,
+    can_export_data: false
+  }
+
+  // Set dashboard access based on selection
+  if (dashboardAccess === 'Admin') basePermissions.can_access_admin_dashboard = true
+  if (dashboardAccess === 'Manager') basePermissions.can_access_manager_dashboard = true
+  if (dashboardAccess === 'Rep') basePermissions.can_access_rep_dashboard = true
+
+  // Set permissions based on role type
+  if (roleType === 'Admin') {
+    return {
+      ...basePermissions,
+      can_access_admin_dashboard: true,
+      can_access_manager_dashboard: true,
+      can_access_rep_dashboard: true,
+      can_create_users: true,
+      can_edit_users: true,
+      can_delete_users: true,
+      can_assign_roles: true,
+      can_manage_user_roles: true,
+      can_create_engagements: true,
+      can_edit_own_engagements: true,
+      can_edit_all_engagements: true,
+      can_delete_engagements: true,
+      can_view_own_engagements: true,
+      can_view_team_engagements: true,
+      can_view_all_engagements: true,
+      can_view_system_logs: true,
+      can_manage_system_settings: true,
+      can_view_team_reports: true,
+      can_view_all_reports: true,
+      can_export_data: true
+    }
+  }
+
+  if (roleType === 'Manager') {
+    return {
+      ...basePermissions,
+      can_access_manager_dashboard: true,
+      can_access_rep_dashboard: true,
+      can_create_engagements: true,
+      can_edit_own_engagements: true,
+      can_view_own_engagements: true,
+      can_view_team_engagements: true,
+      can_view_team_reports: true,
+      can_export_data: true
+    }
+  }
+
+  if (roleType === 'Consultant') {
+    return {
+      ...basePermissions,
+      can_access_rep_dashboard: true,
+      can_edit_own_engagements: true,
+      can_view_own_engagements: true
+    }
+  }
+
+  return basePermissions
+}
+
+interface PermissionsEditorProps {
+  permissions: UserPermissions
+  onChange: (permissions: UserPermissions) => void
+}
+
+function PermissionsEditor({ permissions, onChange }: PermissionsEditorProps) {
+  const updatePermission = (key: keyof UserPermissions, value: boolean) => {
+    onChange({
+      ...permissions,
+      [key]: value
+    })
+  }
+
+  const permissionGroups = [
+    {
+      title: 'Dashboard Access',
+      permissions: [
+        { key: 'can_access_admin_dashboard', label: 'Admin Dashboard' },
+        { key: 'can_access_manager_dashboard', label: 'Manager Dashboard' },
+        { key: 'can_access_rep_dashboard', label: 'Rep Dashboard' }
+      ]
+    },
+    {
+      title: 'User Management',
+      permissions: [
+        { key: 'can_create_users', label: 'Create Users' },
+        { key: 'can_edit_users', label: 'Edit Users' },
+        { key: 'can_delete_users', label: 'Delete Users' },
+        { key: 'can_assign_roles', label: 'Assign Roles' },
+        { key: 'can_manage_user_roles', label: 'Manage User Roles' }
+      ]
+    },
+    {
+      title: 'Engagement Management',
+      permissions: [
+        { key: 'can_create_engagements', label: 'Create Engagements' },
+        { key: 'can_edit_own_engagements', label: 'Edit Own Engagements' },
+        { key: 'can_edit_all_engagements', label: 'Edit All Engagements' },
+        { key: 'can_delete_engagements', label: 'Delete Engagements' },
+        { key: 'can_view_own_engagements', label: 'View Own Engagements' },
+        { key: 'can_view_team_engagements', label: 'View Team Engagements' },
+        { key: 'can_view_all_engagements', label: 'View All Engagements' }
+      ]
+    },
+    {
+      title: 'System & Reports',
+      permissions: [
+        { key: 'can_view_system_logs', label: 'View System Logs' },
+        { key: 'can_manage_system_settings', label: 'Manage System Settings' },
+        { key: 'can_view_team_reports', label: 'View Team Reports' },
+        { key: 'can_view_all_reports', label: 'View All Reports' },
+        { key: 'can_export_data', label: 'Export Data' }
+      ]
+    }
+  ]
+
+  return (
+    <div style={{ marginBottom: '24px' }}>
+      <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600' }}>
+        Permissions
+      </label>
+      <div style={{
+        border: '1px solid #d1d5db',
+        borderRadius: '6px',
+        padding: '16px',
+        backgroundColor: '#f9fafb',
+        maxHeight: '300px',
+        overflowY: 'auto'
+      }}>
+        {permissionGroups.map((group) => (
+          <div key={group.title} style={{ marginBottom: '16px' }}>
+            <h4 style={{
+              margin: '0 0 8px 0',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#374151'
+            }}>
+              {group.title}
+            </h4>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '8px'
+            }}>
+              {group.permissions.map((perm) => (
+                <label
+                  key={perm.key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={permissions[perm.key as keyof UserPermissions]}
+                    onChange={(e) => updatePermission(perm.key as keyof UserPermissions, e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  {perm.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function CleanUserRoleManagement() {
@@ -512,8 +736,32 @@ function CreateRoleModal({ onSave, onCancel }: CreateRoleModalProps) {
     role_type: 'Custom',
     description: '',
     dashboard_access: 'Rep',
-    permissions: {}
+    permissions: getDefaultPermissions('Custom', 'Rep')
   })
+
+  // Update permissions when role type or dashboard access changes
+  const handleRoleTypeChange = (newRoleType: 'Admin' | 'Manager' | 'Consultant' | 'Custom') => {
+    const newPermissions = getDefaultPermissions(newRoleType, formData.dashboard_access)
+    setFormData(prev => ({ 
+      ...prev, 
+      role_type: newRoleType,
+      permissions: newPermissions
+    }))
+  }
+
+  const handleDashboardAccessChange = (newDashboardAccess: 'Admin' | 'Manager' | 'Rep') => {
+    const updatedPermissions = { ...formData.permissions }
+    // Reset dashboard permissions
+    updatedPermissions.can_access_admin_dashboard = newDashboardAccess === 'Admin'
+    updatedPermissions.can_access_manager_dashboard = newDashboardAccess === 'Manager'
+    updatedPermissions.can_access_rep_dashboard = newDashboardAccess === 'Rep'
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      dashboard_access: newDashboardAccess,
+      permissions: updatedPermissions
+    }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

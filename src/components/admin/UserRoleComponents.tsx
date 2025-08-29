@@ -438,12 +438,70 @@ export function CreateRoleModal({
     }))
   }
 
+  const handlePermissionChange = (permission: keyof UserRolePermissions, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [permission]: value
+      }
+    }))
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.name.trim()) {
       onSubmit(formData)
     }
   }
+
+  const permissionGroups = [
+    {
+      title: 'Dashboard Access',
+      permissions: [
+        { key: 'can_access_admin_dashboard', label: 'Access Admin Dashboard' },
+        { key: 'can_access_manager_dashboard', label: 'Access Manager Dashboard' },
+        { key: 'can_access_rep_dashboard', label: 'Access Rep Dashboard' }
+      ]
+    },
+    {
+      title: 'User Management',
+      permissions: [
+        { key: 'can_create_users', label: 'Create Users' },
+        { key: 'can_edit_users', label: 'Edit Users' },
+        { key: 'can_delete_users', label: 'Delete Users' },
+        { key: 'can_assign_roles', label: 'Assign User Roles' }
+      ]
+    },
+    {
+      title: 'Engagement Management',
+      permissions: [
+        { key: 'can_create_engagements', label: 'Create Engagements' },
+        { key: 'can_edit_all_engagements', label: 'Edit All Engagements' },
+        { key: 'can_edit_own_engagements', label: 'Edit Own Engagements' },
+        { key: 'can_delete_engagements', label: 'Delete Engagements' },
+        { key: 'can_view_all_engagements', label: 'View All Engagements' },
+        { key: 'can_view_team_engagements', label: 'View Team Engagements' },
+        { key: 'can_view_own_engagements', label: 'View Own Engagements' }
+      ]
+    },
+    {
+      title: 'System Administration',
+      permissions: [
+        { key: 'can_manage_user_roles', label: 'Manage User Roles' },
+        { key: 'can_view_system_logs', label: 'View System Logs' },
+        { key: 'can_manage_system_settings', label: 'Manage System Settings' }
+      ]
+    },
+    {
+      title: 'Reporting & Data',
+      permissions: [
+        { key: 'can_view_all_reports', label: 'View All Reports' },
+        { key: 'can_view_team_reports', label: 'View Team Reports' },
+        { key: 'can_export_data', label: 'Export Data' }
+      ]
+    }
+  ]
 
   return (
     <div style={{
@@ -462,7 +520,7 @@ export function CreateRoleModal({
         background: 'white',
         borderRadius: '12px',
         padding: '24px',
-        maxWidth: '600px',
+        maxWidth: '900px',
         width: '90%',
         maxHeight: '80vh',
         overflow: 'auto'
@@ -551,6 +609,46 @@ export function CreateRoleModal({
               }}
               placeholder="Describe what this role is for..."
             />
+          </div>
+
+          {/* Permissions Section */}
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#253D2C' }}>Permissions</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+              {permissionGroups.map(group => (
+                <div key={group.title} style={{ 
+                  background: '#f9fafb', 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: '8px', 
+                  padding: '16px' 
+                }}>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '14px' }}>
+                    {group.title}
+                  </h4>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {group.permissions.map(perm => (
+                      <label key={perm.key} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        cursor: 'pointer',
+                        fontSize: '13px'
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={formData.permissions[perm.key as keyof UserRolePermissions] || false}
+                          onChange={(e) => handlePermissionChange(perm.key as keyof UserRolePermissions, e.target.checked)}
+                          style={{ accentColor: '#2E6F40' }}
+                        />
+                        <span>{perm.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
