@@ -18,19 +18,47 @@ class SupabaseUserRoleService {
   // User Role CRUD operations
   async getAllUserRoles(): Promise<UserRole[]> {
     try {
+      console.log('🔍 Attempting to fetch user roles from Supabase...')
+      console.log('   Supabase URL configured:', !!supabase)
+      
+      // First test: Can we connect to Supabase at all?
+      try {
+        const { data: testData, error: testError } = await supabase
+          .from('information_schema.tables')
+          .select('table_name')
+          .eq('table_schema', 'public')
+          .like('table_name', '%role%')
+          .limit(5)
+        
+        console.log('📋 Available role-related tables:', testData?.map(t => t.table_name))
+        
+        if (testError) {
+          console.log('⚠️ Cannot query table schema:', testError.message)
+        }
+      } catch (schemaError) {
+        console.log('⚠️ Schema query failed, proceeding with direct query')
+      }
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select('*')
         .order('name', { ascending: true })
       
+      console.log('📊 Supabase response:', { data, error })
+      
       if (error) {
-        console.error('Supabase error fetching user roles:', error)
+        console.error('❌ Supabase error fetching user roles:', error)
+        console.error('   Error code:', error.code)
+        console.error('   Error message:', error.message)
+        console.error('   Error details:', error.details)
+        console.error('   Error hint:', error.hint)
         throw new Error(`Failed to fetch user roles: ${error.message}`)
       }
       
+      console.log('✅ Successfully fetched user roles:', data?.length || 0, 'roles')
       return data || []
     } catch (error) {
-      console.error('Error fetching user roles:', error)
+      console.error('💥 Exception in getAllUserRoles:', error)
       throw error
     }
   }

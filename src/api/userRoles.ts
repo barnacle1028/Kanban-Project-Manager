@@ -16,9 +16,14 @@ class UserRoleService {
   // User Role CRUD operations
   async getAllUserRoles(): Promise<UserRole[]> {
     try {
-      return await supabaseUserRoleService.getAllUserRoles()
+      console.log('🚀 UserRoleService.getAllUserRoles called')
+      const result = await supabaseUserRoleService.getAllUserRoles()
+      console.log('✨ UserRoleService received result:', result?.length, 'roles')
+      return result
     } catch (error) {
-      console.error('Error fetching user roles:', error)
+      console.error('💥 UserRoleService error:', error)
+      console.error('   Error message:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('   Error stack:', error instanceof Error ? error.stack : 'No stack')
       throw new Error('Failed to fetch user roles')
     }
   }
