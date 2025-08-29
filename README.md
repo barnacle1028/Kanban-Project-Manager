@@ -1,38 +1,43 @@
 # Kanban Project Manager
 
-🚀 **Professional Kanban project management system with enterprise-grade authentication and role-based access control.**
+🚀 **Enterprise-grade Kanban project management system with comprehensive business management capabilities.**
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbarnacle1028%2FKanban-Project-Manager)
 
 ## ✨ Features
 
+### 📊 **Business Management**
+- **Engagement Management**: Complete CRUD operations for project engagements
+- **Account Management**: Client account tracking with comprehensive contact details  
+- **Engagement Types Manager**: Configurable engagement categories with CRUD capabilities
+- **CSV Import/Export**: Bulk data operations across all management modules
+- **Audit Logging**: Complete CRUD history tracking with change management
+
 ### 🔐 **Authentication & Security**
-- **Secure login** with bcrypt password hashing and CAPTCHA protection
-- **JWT-based authentication** with refresh tokens and automatic rotation
+- **Supabase Auth** with JWT-based authentication
 - **Role-based access control**: Admin, Manager, Rep with granular permissions
-- **Account security**: Lockout protection, audit logging, session management
-- **Production-ready security**: Rate limiting, CORS, security headers
+- **Row Level Security (RLS)** policies for data protection
+- **Comprehensive audit trails** for compliance and accountability
 
 ### 🎨 **Modern Frontend**
 - **React 18 + TypeScript + Vite** for lightning-fast development
 - **Drag & drop Kanban boards** with @dnd-kit
-- **Responsive design** with CSS modules
-- **Role-based UI** that adapts to user permissions
-- **Real-time notifications** and error handling
-- **Component testing** with Vitest and React Testing Library
+- **TanStack Query** for efficient state management and caching
+- **Responsive design** optimized for all devices
+- **Professional UI/UX** with consistent design system
 
-### 🗄️ **Robust Backend**
-- **Express.js API** with comprehensive middleware
-- **PostgreSQL** with Supabase integration
-- **Database migrations** and automated setup
-- **RESTful API** with proper error handling
-- **Comprehensive logging** and monitoring
+### 🗄️ **Database & Backend**
+- **Supabase PostgreSQL** with direct client integration
+- **16 database tables** with optimized schema design
+- **Real-time capabilities** with Supabase subscriptions
+- **Automated backups** and scaling with Supabase
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL database (Supabase recommended)
+- Supabase account
+- Vercel account (for deployment)
 
 ### 1. Clone and Install
 ```bash
@@ -41,146 +46,103 @@ cd Kanban-Project-Manager
 npm install
 ```
 
-### 2. Database Setup
+### 2. Environment Setup
 ```bash
-# Set up your database
-npm run setup-db
+# Copy environment template
+cp .env.example .env.local
 
-# Or manually run migrations
-psql -d your_db -f schema.sql
-psql -d your_db -f migrations/001_add_authentication.sql
+# Configure Supabase credentials
+VITE_SUPABASE_URL=your-supabase-project-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-### 3. Environment Configuration
-```bash
-# Copy and configure environment variables
-cp .env.production .env
-# Edit .env with your database credentials
-```
+### 3. Database Setup
+Run the database migration scripts in your Supabase SQL editor:
+- Use the provided schema files to set up all 16 tables
+- Configure Row Level Security (RLS) policies
+- Populate initial engagement types data
 
 ### 4. Development
 ```bash
-# Start frontend (port 5173)
+# Start development server
 npm run dev
 
-# Start backend (port 3001)
-npm run server:dev
+# Run tests
+npm run test
+
+# Build for production
+npm run build
 ```
 
-## 🌐 Production Deployment
+## 🏗️ Architecture
 
-### Option 1: Cloud Deployment (Recommended)
+### Current Stack
+- **Frontend**: React + TypeScript + Vite (deployed on Vercel)
+- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+- **State Management**: TanStack Query
+- **UI Components**: Custom components with modern design system
 
-**Frontend: Vercel**
-1. Connect this GitHub repo to [Vercel](https://vercel.com)
-2. Build settings: `npm run build` → `dist`
-3. Environment: `VITE_API_BASE_URL=https://kanbanpm.com/api`
+### Project Structure
+```
+src/
+├── components/           # React components
+│   ├── admin/           # Admin management interfaces
+│   ├── auth/            # Authentication components
+│   └── user/            # User-specific components
+├── api/                 # Supabase API integrations
+├── services/            # Business logic services
+├── lib/                 # Configuration and utilities
+└── types/               # TypeScript type definitions
+```
 
-**Backend: Railway**
-1. Deploy backend to [Railway](https://railway.app)
-2. Add environment variables from `.env.production`
-3. Connect your Supabase database
+## 📈 Development Status
 
-### Option 2: VPS Deployment
+**Current Phase**: Phase 1 - 85% Complete
+
+### ✅ Completed Features
+- Database infrastructure with 16 tables
+- Account Management System
+- Engagement Types Management
+- CSV Import/Export System
+- Comprehensive Audit Logging
+- Authentication & Security
+- Modern frontend architecture
+
+### 🔄 In Progress
+- Milestone Template System
+- Advanced reporting features
+
+## 🚀 Deployment
+
+### Vercel Deployment (Recommended)
+1. Connect your GitHub repository to Vercel
+2. Configure environment variables in Vercel dashboard
+3. Deploy automatically on every push to main branch
+
+### Manual Deployment
 ```bash
-# Use the deployment script
-chmod +x deploy.sh
-./deploy.sh kanbanpm.com production
+# Build the application
+npm run build
+
+# Deploy the dist/ folder to your hosting provider
 ```
-
-### Option 3: Docker
-```bash
-docker-compose up -d
-```
-
-## 👥 User Roles & Permissions
-
-| Feature | REP | MANAGER | ADMIN |
-|---------|-----|---------|-------|
-| View own engagements | ✅ | ✅ | ✅ |
-| View team engagements | ❌ | ✅ | ✅ |
-| Create engagements | ❌ | ✅ | ✅ |
-| User management | ❌ | ❌ | ✅ |
-| System administration | ❌ | ❌ | ✅ |
-
-## 🔑 Default Login
-- **Email**: `admin@kanban-app.com`
-- **Password**: `admin123!`
-- **⚠️ Change this immediately in production!**
-
-## 📊 Tech Stack
-
-- **Frontend**: React 18, TypeScript, Vite, @dnd-kit, React Query, Zustand
-- **Backend**: Node.js, Express.js, JWT, bcrypt, CAPTCHA
-- **Database**: PostgreSQL, Supabase
-- **Deployment**: Vercel, Railway, Docker, GitHub Actions
-- **Testing**: Vitest, React Testing Library, Playwright
-
-## 📋 API Endpoints
-
-### Authentication
-- `POST /api/auth/login` - Login with CAPTCHA
-- `POST /api/auth/refresh` - Refresh access token
-- `POST /api/auth/logout` - Logout and revoke tokens
-- `GET /api/auth/profile` - Get user profile
-
-### Engagements
-- `GET /api/engagements` - List engagements (role-filtered)
-- `GET /api/engagements/:id` - Get engagement details
-- `POST /api/engagements` - Create engagement (Manager+)
-- `PATCH /api/engagements/:id` - Update engagement
-- `PATCH /api/engagements/:id/milestones/:mid` - Update milestone
-
-## 🗄️ Database Schema
-
-### Core Tables
-- **app_user** - Users with roles and authentication
-- **engagement** - Project engagements with status tracking
-- **engagement_milestone** - Milestone tracking with stages
-- **milestone_template** - Reusable milestone templates
-- **refresh_tokens** - JWT token management
-- **login_attempts** - Security audit logging
-
-### Views
-- **vw_engagement_progress** - Calculated completion percentages
-- **vw_engagement_with_manager** - Engagement hierarchy
-- **vw_user_auth** - Authentication data
-
-## 🔒 Security Features
-
-- **Password Security**: bcrypt hashing, strength requirements, history tracking
-- **Account Protection**: Failed attempt lockout, rate limiting
-- **CAPTCHA**: SVG-based visual verification
-- **Token Security**: JWT with refresh rotation, secure storage
-- **Audit Logging**: Comprehensive security event tracking
-- **Network Security**: CORS, security headers, SSL enforcement
-
-## 📖 Documentation
-
-- [**Authentication Setup**](./AUTHENTICATION_SETUP.md) - Complete auth system guide
-- [**Deployment Guide**](./DEPLOYMENT_GUIDE.md) - Production deployment options
-- [**GoDaddy Setup**](./GODADDY_SETUP.md) - Domain configuration for kanbanpm.com
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Run tests and ensure build passes
+5. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+## 🆘 Support
 
-- Built with [Claude Code](https://claude.ai/code)
-- UI components inspired by modern design principles
-- Security practices following OWASP guidelines
+For support and questions, please open an issue on the GitHub repository.
 
 ---
 
-**🌐 Live Demo**: [kanbanpm.com](https://kanbanpm.com)
-
-**📧 Support**: For issues or questions, please open a GitHub issue.
+**Built with ❤️ using React, TypeScript, Supabase, and modern web technologies.**

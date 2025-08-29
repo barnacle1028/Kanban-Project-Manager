@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { useUsers } from '../../hooks/useUsers'
 import UserRoleManagement from './UserRoleManagement'
 import ComprehensiveUserManagement from './UserManagement'
 import { userManagementService } from '../../api/userManagement'
@@ -98,26 +97,6 @@ function UserManagementWrapper() {
   return <ComprehensiveUserManagement />
 }
 
-function SimpleUserManagement() {
-  const { users, isLoading, error } = useUsers()
-
-  if (isLoading) return <div>Loading users...</div>
-  if (error) return <div>Error loading users: {error.message}</div>
-
-  return (
-    <div>
-      <h4>Users ({users.length})</h4>
-      <div style={{ display: 'grid', gap: '8px' }}>
-        {users.map(user => (
-          <div key={user.id} style={{ padding: '12px', background: '#f9fafb', borderRadius: '4px' }}>
-            <div style={{ fontWeight: '500' }}>{user.first_name} {user.last_name}</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>{user.email} • {user.user_role?.name || 'No Role'}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 function OrganizationSettings() {
   return (
