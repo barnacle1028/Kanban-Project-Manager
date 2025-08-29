@@ -17,13 +17,26 @@ import { auditService } from '../services/auditService'
 // Create an admin client that bypasses RLS for user roles operations
 const getAdminSupabaseClient = () => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
+  const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+  
+  console.log('🔑 Admin client configuration:')
+  console.log('   URL:', supabaseUrl ? 'Set' : 'Missing')
+  console.log('   Service Key:', supabaseServiceKey ? `Set (${supabaseServiceKey.length} chars)` : 'Missing - using anon key')
+  console.log('   Anon Key:', supabaseAnonKey ? `Set (${supabaseAnonKey.length} chars)` : 'Missing')
   
   if (!supabaseUrl) {
     throw new Error('Supabase URL not configured')
   }
   
-  return createClient(supabaseUrl, supabaseServiceKey, {
+  // Use service role key if available, otherwise fall back to anon key
+  const keyToUse = supabaseServiceKey || supabaseAnonKey
+  
+  if (!keyToUse) {
+    throw new Error('No Supabase key available')
+  }
+  
+  return createClient(supabaseUrl, keyToUse, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -55,6 +68,19 @@ class SupabaseUserRoleService {
         console.error('   Error message:', error.message)
         console.error('   Error details:', error.details)
         console.error('   Error hint:', error.hint)
+        
+        // Provide specific guidance for RLS issues
+        if (error.code === '42501' || error.message?.includes('policy')) {
+          console.error('🚨 RLS POLICY ISSUE DETECTED!')
+          console.error('   This error indicates Row Level Security is blocking access.')
+          console.error('   SOLUTIONS:')
+          console.error('   1. Run this SQL in Supabase SQL Editor:')
+          console.error('      ALTER TABLE user_roles DISABLE ROW LEVEL SECURITY;')
+          console.error('   2. Or configure VITE_SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables')
+          
+          throw new Error(`RLS Policy Error: ${error.message}. Check console for solutions.`)
+        }
+        
         throw new Error(`Failed to fetch user roles: ${error.message}`)
       }
       
